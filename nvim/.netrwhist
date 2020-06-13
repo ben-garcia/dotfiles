@@ -1,0 +1,12 @@
+let g:netrw_dirhistmax  =10
+let g:netrw_dirhistcnt =4
+let g:netrw_dirhist_4='/home/ben/Workspace/hello_app'
+let g:netrw_dirhist_3='/home/ben/Workspace/Musiki'
+let g:netrw_dirhist_2='/home/ben/Workspace/stack/client'
+let g:netrw_dirhist_1='/home/ben/Workspace/stack/server'
+let g:netrw_dirhist_0='/home/ben/Desktop/rails-vue'
+let g:netrw_dirhist_9='/home/ben/Workspace/stack/server'
+let g:netrw_dirhist_8='/home/ben/Workspace/stack/server/src/controllers/AuthenticationController'
+let g:netrw_dirhist_7='/home/ben/Workspace/stack/server/src/controllers'
+let g:netrw_dirhist_6='/home/ben/Workspace/stack/server/src'
+let g:netrw_dirhist_5='/home/ben/Workspace/stack/server'
