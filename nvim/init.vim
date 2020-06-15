@@ -5,6 +5,8 @@ Plug 'morhetz/gruvbox'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'junegunn/fzf', { 'do': './install --bin' }
 Plug 'junegunn/fzf.vim'
+Plug 'pangloss/vim-javascript'
+Plug 'neoclide/vim-jsx-improve'
 Plug 'leafgarland/typescript-vim'
 Plug 'peitalin/vim-jsx-typescript'
 Plug 'ianks/vim-tsx'
@@ -27,8 +29,9 @@ let g:coc_global_extensions = [
 
 syntax on
 " Theme
-autocmd vimenter * colorscheme gruvbox
 set background=dark
+colorscheme gruvbox
+
 set noerrorbells
 set colorcolumn=80
 set nocompatible
@@ -44,7 +47,7 @@ set hlsearch
 set encoding=utf-8
 set nowrap
 set t_Co=256
-" don't save marks after quit
+" don't save custom marks and registers after quit
 set viminfo=
 " TextEdit might fail if hidden is not set.
 set hidden
@@ -73,10 +76,7 @@ let mapleader = " "
 nmap <C-p> :Files<CR>
 
 " fzf.vim
-let g:fzf_preview_window = ''
-
-" gruvbox
-let g:gruvbox_contrast_dark = 'hard'
+let g:fzf_preview_window=''
 
 " Use tab for trigger completion with characters ahead and navigate.
 " NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
