@@ -1,7 +1,7 @@
 " Specify a directory for plugins
 call plug#begin(stdpath('data') . '/plugged')
 
-Plug 'morhetz/gruvbox'
+Plug 'joshdick/onedark.vim'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'junegunn/fzf', { 'do': './install --bin' }
 Plug 'junegunn/fzf.vim'
@@ -29,8 +29,9 @@ let g:coc_global_extensions = [
 
 syntax on
 " Theme
-set background=dark
-colorscheme gruvbox
+set t_Co=256
+set t_ut=
+colorscheme onedark
 
 set noerrorbells
 set colorcolumn=80
@@ -46,7 +47,6 @@ set relativenumber
 set hlsearch
 set encoding=utf-8
 set nowrap
-set t_Co=256
 " don't save custom marks and registers after quit
 set viminfo=
 " TextEdit might fail if hidden is not set.
@@ -109,6 +109,12 @@ nmap <leader>gd <Plug>(coc-definition)
 nmap <leader>gy <Plug>(coc-type-definition)
 nmap <leader>gi <Plug>(coc-implementation)
 nmap <leader>gr <Plug>(coc-references)
+
+" move between panes
+nnoremap <leader>h :wincmd h<CR>
+nnoremap <leader>j :wincmd j<CR>
+nnoremap <leader>k :wincmd k<CR>
+nnoremap <leader>l :wincmd l<CR>
 
 " Use K to show documentation in preview window.
 nnoremap <silent> K :call <SID>show_documentation()<CR>
