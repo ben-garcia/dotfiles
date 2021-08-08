@@ -12,6 +12,7 @@ Plug 'peitalin/vim-jsx-typescript'
 Plug 'ianks/vim-tsx'
 Plug 'vim-airline/vim-airline'
 Plug 'vim-airline/vim-airline-themes'
+Plug 'jparise/vim-graphql'
 
 call plug#end()
 
@@ -152,7 +153,7 @@ command! -nargs=0 OR   :call     CocAction('runCommand', 'editor.action.organize
 " nmap <C-q> :CocCommand explorer<CR>
 nmap <leader>q :CocCommand explorer<CR>
 " when explorer is the final buffer opon go ahead and close it
-autocmd BufEnter * if (winnr("$") == 1 && &filetype == 'coc-explorer') | q | endif
+" autocmd BufEnter * if (winnr("$") == 1 && &filetype == 'coc-explorer') | q | endif
 
 " vim-jsx-typescript
 " set filestypes as typescript.tsx
