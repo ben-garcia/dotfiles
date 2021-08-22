@@ -6,7 +6,7 @@ return require("packer").startup(function(use)
   -- Packer can manage itself
   use("wbthomason/packer.nvim")
 
-  -- Color theme
+  -- Theme
   use("joshdick/onedark.vim")
 
   -- inproved syntax highlighting
@@ -19,10 +19,18 @@ return require("packer").startup(function(use)
   use("glepnir/lspsaga.nvim")
   -- auto completion
   use("hrsh7th/nvim-compe")
+  -- Popup API from vim in Neovim
+  use("nvim-lua/popup.nvim")
   -- fuzy finder & more
   use({
     "nvim-telescope/telescope.nvim",
     requires = { { "nvim-lua/plenary.nvim" } },
+  })
+  -- linters and formatters for lsp
+  -- eslint and  prettier supported
+  use({
+    "creativenull/diagnosticls-configs-nvim",
+    requires = { "neovim/nvim-lspconfig" },
   })
   -- code formatter
   use("mhartington/formatter.nvim")

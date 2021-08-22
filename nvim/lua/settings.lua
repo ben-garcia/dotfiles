@@ -43,6 +43,7 @@ opt.relativenumber = true
 opt.scrolloff = 4 -- Lines of context
 opt.shiftround = true -- Round indent
 opt.shiftwidth = 2 -- Size of an indent
+-- opt.shada = "" -- delete marks after restart
 opt.showmode = false -- Don't display mode
 opt.sidescrolloff = 8 -- Columns of context
 opt.signcolumn = "yes:1" -- always show signcolumns
@@ -58,6 +59,21 @@ opt.wrap = false
 
 -- mappings
 
+-- open the 'shada' file
+-- this file is used to store, among other things, marks
+map("n", "<leader>ss", "<cmd>e ~/.local/share/nvim/shada/main.shada<CR>", { noremap = true })
+-- split horizontal
+map("n", "<leader>sh", ":split<CR>", { noremap = true })
+-- split vertical
+map("n", "<leader>sv", ":vsplit<CR>", { noremap = true })
+-- horizontal resize
+map("n", "<up>", ":resize +2<CR>", { noremap = true })
+map("n", "<down>", ":resize -2<CR>", { noremap = true })
+-- vertical resize
+map("n", "<left>", ":vertical resize -2<CR>", { noremap = true })
+map("n", "<right>", ":vertical resize +2<CR>", { noremap = true })
+-- reset windows sizes
+map("n", "<leader>=", "<C-w>=", { noremap = true })
 -- move between panes
 map("n", "<leader>h", ":wincmd h<cr>", { noremap = true })
 map("n", "<leader>j", ":wincmd j<cr>", { noremap = true })

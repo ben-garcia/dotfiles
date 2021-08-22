@@ -1,9 +1,47 @@
 -- Prerequisite
 vim.o.completeopt = "menuone,noselect"
 
+local function setup_diagnostics()
+  vim.lsp.handlers["textDocument/publishDiagnostics"] = vim.lsp.with(vim.lsp.diagnostic.on_publish_diagnostics, {
+    underline = true,
+    virtual_text = true,
+    signs = true,
+    update_in_insert = false,
+  })
+end
+
+local function custom_on_attach(client)
+  print("Attaching to " .. client.name)
+  setup_diagnostics()
+end
+
+local default_config = {
+  on_attach = custom_on_attach,
+}
+
+local eslint = require("diagnosticls-configs.linters.eslint")
+local prettier = require("diagnosticls-configs.formatters.prettier")
+require("diagnosticls-configs").setup({
+  ["javascript"] = {
+    linter = eslint,
+    formatter = prettier,
+  },
+  ["typescript"] = {
+    linter = eslint,
+    formatter = prettier,
+  },
+
+  ["typescriptreact"] = {
+    linter = eslint,
+    formatter = prettier,
+  },
+})
+
+require("diagnosticls-configs").init(default_config)
+
 -- typescript
 -- see https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#tsserver
-require("lspconfig").tsserver.setup({})
+require("lspconfig").tsserver.setup(default_config)
 
 -- lua
 -- see https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#sumneko_lua
