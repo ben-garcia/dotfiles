@@ -18,7 +18,10 @@ return require("packer").startup(function(use)
   -- neovim native lsp UI enhancements
   use("glepnir/lspsaga.nvim")
   -- auto completion
-  use("hrsh7th/nvim-compe")
+  use({
+    "hrsh7th/nvim-compe",
+    requires = { { "hrsh7th/vim-vsnip" } },
+  })
   -- Popup API from vim in Neovim
   use("nvim-lua/popup.nvim")
   -- fuzy finder & more
@@ -46,4 +49,6 @@ return require("packer").startup(function(use)
   })
   -- comment
   use("b3nj5m1n/kommentary")
+  -- markdown preview
+  use({ "iamcco/markdown-preview.nvim", run = "cd app && yarn install" })
 end)

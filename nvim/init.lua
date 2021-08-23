@@ -28,3 +28,6 @@ require("tree")
 
 -- treesitter configuration
 require("treesitter")
+
+-- markdown preview
+require("markdown-preview")
