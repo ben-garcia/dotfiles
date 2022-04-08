@@ -1,33 +1,16 @@
--- formatter
--- -- prevent any conflicts with telescope package
--- by adding the underscore
-require("_formatter")
-
--- language server protocol
-require("lsp")
-
--- statusline
-require("_lualine")
-
--- run packer setup function with all plugins
-require("plugins")
-
--- lspsaga
-require("saga")
-
--- vim settings
+require("packer-config")
 require("settings")
-
--- telescope
--- prevent any conflicts with telescope package
--- by adding the underscore
-require("_telescope")
---
--- nvim tree
-require("tree")
-
--- treesitter configuration
-require("treesitter")
-
--- markdown preview
-require("markdown-preview")
+require("keymappings")
+require("autopairs-config")
+require("lualine-config")
+require("colorschemes-config.onedark")
+require("nvim-tree-config")
+require("comment-nvim-config")
+require("colorizer-config")
+require("indent-blankline-config")
+require("telescope-config")
+require("treesitter-config")
+require("lsp-config.language-servers")
+require("lsp-config.lspsaga")
+require("lsp-config.completion")
+require("lsp-config.null-ls")
