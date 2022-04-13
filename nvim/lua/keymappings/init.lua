@@ -52,6 +52,9 @@ map("n", "<leader>gr", ":Lspsaga rename<CR>", opts_silent)
 map("n", "<leader>gd", ":Lspsaga preview_definition<CR>", opts_silent)
 map("n", "<leader>gD", "<cmd>lua vim.lsp.buf.definition()<CR>", opts_silent)
 
+-- formatting
+map("n", "<leader>z", "<cmd>lua vim.lsp.buf.formatting_sync()<CR>", opts_silent)
+
 --- telescope
 map("n", "<leader>ff", ":Telescope find_files<CR>", opts_noremap)
 map("n", "<leader>fb", ":Telescope buffers<CR>", opts_noremap)

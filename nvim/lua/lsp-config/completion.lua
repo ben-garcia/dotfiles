@@ -2,14 +2,12 @@ local cmp = require("cmp")
 local lspkind = require("lspkind")
 
 cmp.setup({
+	experimental = {
+		ghost_text = true,
+	},
 	formatting = {
 		format = lspkind.cmp_format({
 			with_text = true,
-			maxwidth = 50,
-
-			before = function(_, vim_item)
-				return vim_item
-			end,
 		}),
 	},
 
@@ -34,6 +32,7 @@ cmp.setup({
 
 	sources = {
 		{ name = "nvim_lsp" },
+		{ name = "nvim_lsp_signature_help" },
 		{ name = "luasnip" },
 	},
 
