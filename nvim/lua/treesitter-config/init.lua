@@ -1,6 +1,7 @@
 require("nvim-treesitter.configs").setup({
 	-- parsers
 	ensure_installed = {
+    "c",
 		"css",
 		"html",
 		"javascript",

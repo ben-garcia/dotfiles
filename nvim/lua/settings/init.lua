@@ -16,6 +16,7 @@ opt.ignorecase = true -- Ignore case
 opt.inccommand = "split" -- Get a preview of replacements
 opt.incsearch = true -- Shows the match while typing
 opt.joinspaces = false -- No double spaces with join
+opt.laststatus = 3  -- enable global statusline
 opt.linebreak = true -- Stop words being broken on wrap
 opt.list = false -- Show some invisible characters
 opt.number = true -- Show line numbers

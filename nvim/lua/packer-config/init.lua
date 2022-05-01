@@ -13,6 +13,7 @@ return require("packer").startup(function(use)
 
 	-- colorschemes
 	use("navarasu/onedark.nvim")
+  use("ellisonleao/gruvbox.nvim")
 
 	-- treesitter
 	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })

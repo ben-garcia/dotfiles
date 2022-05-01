@@ -9,6 +9,7 @@ local on_attach = function(client, bufnr)
 end
 
 local servers = {
+	"clangd",
 	"sumneko_lua",
 	"tsserver",
 }
