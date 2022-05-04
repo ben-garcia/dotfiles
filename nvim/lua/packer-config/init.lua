@@ -1,3 +1,17 @@
+local fn = vim.fn
+local install_path = fn.stdpath("data") .. "/site/pack/packer/start/packer.nvim"
+local packer_bootstrap
+if fn.empty(fn.glob(install_path)) > 0 then
+	packer_bootstrap = fn.system({
+		"git",
+		"clone",
+		"--depth",
+		"1",
+		"https://github.com/wbthomason/packer.nvim",
+		install_path,
+	})
+end
+
 return require("packer").startup(function(use)
 	use("wbthomason/packer.nvim") -- package manager
 
@@ -13,7 +27,7 @@ return require("packer").startup(function(use)
 
 	-- colorschemes
 	use("navarasu/onedark.nvim")
-  use("ellisonleao/gruvbox.nvim")
+	use("ellisonleao/gruvbox.nvim")
 
 	-- treesitter
 	use({ "nvim-treesitter/nvim-treesitter", run = ":TSUpdate" })
@@ -30,4 +44,10 @@ return require("packer").startup(function(use)
 	use("hrsh7th/cmp-nvim-lsp-signature-help")
 	use("saadparwaiz1/cmp_luasnip")
 	use("L3MON4D3/LuaSnip")
+
+	-- Automatically set up your configuration after cloning packer.nvim
+	-- Put this at the end after all plugins
+	if packer_bootstrap then
+		require("packer").sync()
+	end
 end)
