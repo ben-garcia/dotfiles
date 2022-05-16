@@ -15,6 +15,10 @@ local servers = {
 }
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
+-- Fix for
+-- warning: multiple different client offset_encodings detected for buffer,
+-- this is not supported yet
+capabilities.offsetEncoding = { "utf-16" }
 capabilities = require("cmp_nvim_lsp").update_capabilities(capabilities)
 
 for _, name in pairs(servers) do
