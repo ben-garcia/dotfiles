@@ -7,6 +7,7 @@ require("nvim-treesitter.configs").setup({
 		"javascript",
 		"json",
 		"lua",
+    "make",
 		"graphql",
 		"scss",
 		"tsx",
