@@ -56,5 +56,7 @@ map("n", "<leader>gD", "<cmd>lua vim.lsp.buf.definition()<CR>", opts_silent)
 map("n", "<leader>z", "<cmd>lua vim.lsp.buf.formatting_sync()<CR>", opts_silent)
 
 --- telescope
-map("n", "<leader>ff", ":Telescope find_files<CR>", opts_noremap)
 map("n", "<leader>fb", ":Telescope buffers<CR>", opts_noremap)
+map("n", "<leader>ff", ":Telescope find_files<CR>", opts_noremap)
+map("n", "<leader>fg", ":Telescope live_grep<CR>", opts_noremap)
+map("n", "<leader>ft", ":Telescope git_status<CR>", opts_noremap)
