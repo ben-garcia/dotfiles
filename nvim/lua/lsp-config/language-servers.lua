@@ -10,6 +10,7 @@ end
 
 local servers = {
 	"clangd",
+	"cssls",
 	"sumneko_lua",
 	"tsserver",
 }
