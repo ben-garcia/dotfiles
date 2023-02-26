@@ -5,6 +5,10 @@ local opts_silent = { silent = true }
 
 vim.g.mapleader = " "
 
+-- copy & paste from system clipboard
+map("v", "<leader>c", '"+y', opts)
+map("n", "<leader>v", '"+p', opts)
+
 --- nvim tree
 map("n", "<leader>w", ":NvimTreeToggle<CR>", opts)
 
@@ -53,7 +57,7 @@ map("n", "<leader>gd", ":Lspsaga preview_definition<CR>", opts_silent)
 map("n", "<leader>gD", "<cmd>lua vim.lsp.buf.definition()<CR>", opts_silent)
 
 -- formatting
-map("n", "<leader>z", "<cmd>lua vim.lsp.buf.formatting_sync()<CR>", opts_silent)
+map("n", "<leader>z", "<cmd>lua vim.lsp.buf.format()<CR>", opts_silent)
 
 --- telescope
 map("n", "<leader>fb", ":Telescope buffers<CR>", opts_noremap)

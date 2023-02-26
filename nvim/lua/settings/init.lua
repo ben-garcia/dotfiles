@@ -1,7 +1,6 @@
 local opt = vim.opt
 
 opt.backspace = { "indent", "eol", "start" }
-opt.clipboard = "unnamedplus"
 opt.colorcolumn = "80" -- vertical line to indicate 80 characters
 opt.completeopt = "menuone,noselect"
 opt.cursorline = true
