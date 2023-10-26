@@ -2,8 +2,8 @@ local lsp_installer = require("nvim-lsp-installer")
 
 local on_attach = function(client, bufnr)
 	-- Avoiding LSP formatting conflicts with null-ls and the lsp.
-	client.resolved_capabilities.document_formatting = false
-	client.resolved_capabilities.document_range_formatting = false
+	client.server_capabilities.document_formatting = false
+	client.server_capabilities.document_range_formatting = false
 
 	vim.api.nvim_buf_set_option(bufnr, "omnifunc", "v:lua.vim.lsp.omnifunc")
 end
@@ -11,8 +11,8 @@ end
 local servers = {
 	"clangd",
 	"cssls",
-  "jsonls",
-	"sumneko_lua",
+	"jsonls",
+	"lua_ls",
 	"tsserver",
 }
 
@@ -21,7 +21,7 @@ local capabilities = vim.lsp.protocol.make_client_capabilities()
 -- warning: multiple different client offset_encodings detected for buffer,
 -- this is not supported yet
 capabilities.offsetEncoding = { "utf-16" }
-capabilities = require("cmp_nvim_lsp").update_capabilities(capabilities)
+capabilities = require("cmp_nvim_lsp").default_capabilities(capabilities)
 
 for _, name in pairs(servers) do
 	local server_is_found, server = lsp_installer.get_server(name)
