@@ -1,17 +1,42 @@
-require("lazy-config")
-require("settings")
-require("keymappings")
-require("autopairs-config")
-require("lualine-config")
--- require("colorschemes-config.onedark")
-require("colorschemes-config.gruvbox")
-require("nvim-tree-config")
-require("comment-nvim-config")
-require("colorizer-config")
-require("indent-blankline-config")
-require("telescope-config")
-require("treesitter-config")
-require("lsp-config.mason")
-require("lsp-config.lspsaga")
-require("lsp-config.completion")
-require("noice-config")
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable", -- latest stable release
+    lazypath,
+  })
+end
+
+vim.opt.rtp:prepend(lazypath)
+
+require("config.keymappings")
+require("config.options")
+
+local options = {
+  install = {
+    -- try to load one of these colorschemes when starting an installation during startup
+    colorscheme = { "gruvbox" },
+  },
+  rtp = {
+    disabled_plugins = {
+      "gzip",
+      "matchit",
+      "matchparen",
+      "netrw",
+      "netrwPlugin",
+      "tarPlugin",
+      "tohtml",
+      "tutor",
+      "zipPlugin",
+    },
+  },
+  change_detection = {
+    notify = false,
+  },
+}
+
+require("lazy").setup("plugins", options)

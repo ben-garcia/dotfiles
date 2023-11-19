@@ -33,6 +33,7 @@ opt.smartindent = true -- Insert indents automatically
 opt.spelllang = "en"
 opt.splitbelow = true -- Put new windows below current
 opt.splitright = true -- Put new windows right of current
+opt.swapfile = false
 opt.tabstop = 2 -- Number of spaces tabs count for
 opt.termguicolors = true -- You will have bad experience for diagnostic messages when it's default 4000.
 opt.updatetime = 250 -- don't give |ins-completion-menu| messages.
