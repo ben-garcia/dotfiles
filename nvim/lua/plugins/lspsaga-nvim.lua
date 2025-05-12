@@ -1,6 +1,6 @@
 return {
-  "tami5/lspsaga.nvim",
-  event = "InsertEnter",
+  "nvimdev/lspsaga.nvim",
+  event = "LspAttach",
   opts = {
     debug = false,
     use_saga_diagnostic_sign = true,
@@ -44,23 +44,21 @@ return {
     diagnostic_prefix_format = "%d. ",
   },
   dependencies = {
-    "nvim-treesitter/nvim-treesitter",
+    'nvim-treesitter/nvim-treesitter',
+    'nvim-tree/nvim-web-devicons',
   },
   keys = function()
     local map = vim.api.nvim_set_keymap
-    local opts_silent = { silent = true }
+    local opts = { silent = true }
 
-    map("n", "<Leader>gf", ":Lspsaga lsp_finder<CR>", opts_silent)
-    map("n", "<leader>ga", ":Lspsaga code_action<CR>", opts_silent)
-    map("n", "<leader>gh", ":Lspsaga hover_doc<CR>", opts_silent)
-    map("n", "<leader>gk", '<cmd>lua require("lspsaga.action").smart_scroll_with_saga(1)<CR>', opts_silent)
-    map("n", "<leader>gj", '<cmd>lua require("lspsaga.action").smart_scroll_with_saga(-1)<CR>', opts_silent)
-    map("n", "<leader>gs", ":Lspsaga signature_help<CR>", opts_silent)
-    map("n", "<leader>gi", ":Lspsaga show_line_diagnostics<CR>", opts_silent)
-    map("n", "<leader>gn", ":Lspsaga diagnostic_jump_next<CR>", opts_silent)
-    map("n", "<leader>gp", ":Lspsaga diagnostic_jump_prev<CR>", opts_silent)
-    map("n", "<leader>gr", ":Lspsaga rename<CR>", opts_silent)
-    map("n", "<leader>gd", ":Lspsaga preview_definition<CR>", opts_silent)
-    map("n", "<leader>gD", "<cmd>lua vim.lsp.buf.definition()<CR>", opts_silent)
+    map("n", "<Leader>gf", ":Lspsaga finder<CR>", opts)
+    map("n", "<Leader>go", ":Lspsaga outline<CR>", opts)
+    map("n", "<leader>ga", ":Lspsaga code_action<CR>", opts)
+    map("n", "<leader>gh", ":Lspsaga hover_doc<CR>", opts)
+    map("n", "<leader>gi", ":Lspsaga show_line_diagnostics<CR>", opts)
+    map("n", "<leader>gb", ":Lspsaga show_buf_diagnostics<CR>", opts)
+    map("n", "<leader>gr", ":Lspsaga rename<CR>", opts)
+    map("n", "<leader>gd", ":Lspsaga peek_definition<CR>", opts)
+    map("n", "<leader>gD", ":Lspsaga goto_definition<CR>", opts)
   end,
 }

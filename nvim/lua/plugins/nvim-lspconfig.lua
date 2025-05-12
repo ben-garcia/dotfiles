@@ -3,6 +3,13 @@ return {
   config = function()
     local lspconfig = require("lspconfig")
 
+    lspconfig.clangd.setup({ })
+    lspconfig.cssls.setup({})
+    lspconfig.eslint.setup({})
+    lspconfig.graphql.setup({})
+    lspconfig.html.setup({})
+    lspconfig.jsonls.setup({})
+    lspconfig.kotlin_language_server.setup({})
     lspconfig.lua_ls.setup({
       settings = {
         Lua = {
@@ -13,12 +20,8 @@ return {
         },
       },
     })
-    lspconfig.cssls.setup({})
-    lspconfig.html.setup({})
-    lspconfig.graphql.setup({})
-    lspconfig.eslint.setup({})
-    lspconfig.clangd.setup({})
-    lspconfig.tsserver.setup({})
+    lspconfig.stylelint_lsp.setup({})
+    lspconfig.ts_ls.setup({})
   end,
   event = "InsertEnter",
   dependencies = {

@@ -43,3 +43,6 @@ map("n", "<leader>w", ":NvimTreeToggle<CR>", opts)
 
 -- lazy
 map("n", "<leader>x", ":Lazy<CR>", opts)
+
+-- mason
+map("n", "<leader>m", ":Mason<CR>", opts)

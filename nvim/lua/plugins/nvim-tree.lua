@@ -4,7 +4,8 @@ return {
     vim.cmd([[hi NvimTreeNormal guibg=NONE ctermbg=None]])
     require("nvim-tree").setup({
       filters = {
-        dotfiles = true,
+        -- show hidden files
+        dotfiles = false,
       },
       diagnostics = {
         enable = true,

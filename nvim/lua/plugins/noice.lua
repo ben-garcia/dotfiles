@@ -1,5 +1,10 @@
 return {
   "folke/noice.nvim",
+  config = function()
+    require("notify").setup({
+      background_colour = "#000000",
+    })
+  end,
   event = "VeryLazy",
   keys = {
     {
