@@ -6,4 +6,4 @@
 # Otherwise you can use the nuclear option:
 killall -q polybar
 
-polybar example
+/usr/bin/polybar main
