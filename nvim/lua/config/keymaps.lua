@@ -1,6 +1,7 @@
 vim.keymap.set('n', '<leader>n', function() vim.cmd('Explore') end, { desc = 'Open the netrw browser' })
 vim.keymap.set('n', '<leader>n', '<cmd>nohlsearch<cr>', { desc = 'Stop highlighting previous pattern match' })
 vim.keymap.set('n', '<leader>r', '<cmd>RunLinter<cr>', { desc = 'Run Linter without blocking user interaction' })
+vim.keymap.set('n', '<leader>q', '<cmd>close<cr>', { desc = 'Close the buffer' })
 
 -- move between windows
 vim.keymap.set('n', '<leader>h', '<c-w>h', { desc = 'Move focus to the window on the left' })

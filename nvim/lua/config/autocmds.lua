@@ -23,6 +23,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
     vim.api.nvim_buf_set_keymap(0, 'n', '<leader>gr', '<cmd>lua vim.lsp.buf.references()<cr>', options)
     vim.api.nvim_buf_set_keymap(0, 'n', '<leader>gs', '<cmd>lua vim.lsp.buf.signature_help()<cr>', options)
     vim.api.nvim_buf_set_keymap(0, 'n', '<leader>gt', '<cmd>lua vim.lsp.buf.type_definition()<cr>', options)
+    vim.api.nvim_buf_set_keymap(0, 'n', 'K', ':Man <c-r><c-w><cr>',options)
   end,
   desc = 'After lsp client attaches to a buffer',
 })
