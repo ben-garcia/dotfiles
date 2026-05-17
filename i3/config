@@ -2,8 +2,8 @@
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 
-# use windows key
-set $mod Mod4
+# use alt key
+set $mod Mod1
 
 # uses pango to render window titles
 font pango: JetBrainsMonoNerdFontMono 13
@@ -89,6 +89,8 @@ bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 # exit i3 (logs you out of your X session)
 bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -b 'Yes, exit i3' 'i3-msg exit'"
+# launch power menu
+bindsym $mod+Shift+p exec --no-startup-id ~/.config/rofi/power-menu.sh
 
 # active resize mode
 bindsym $mod+r mode "$mode_resize"
@@ -115,7 +117,7 @@ bindsym $mod+o mode "$mode_launcher"
 mode "$mode_launcher" {
   bindsym f exec firefox
   bindsym l exec librewolf
-
+  bindsym i exec inkscape
   bindsym b exec alacritty --class alac_btop -e btop
 
 	# back to normal: Enter or Escape
@@ -130,8 +132,10 @@ mode "$mode_launcher" {
 
 # assignments
 assign [class="^firefox$"] 1
+assign [class="^librewolf$"] 1
 for_window [class="^librewolf$" title=".*LibreWolf Private Browsing.*"] move container to workspace  2
 for_window [class="^firefox$" title=".*Firefox Private Browsing.*"]  move container to workspace 2
+assign [class="^Inkscape$"] 8
 assign [class="^alac_btop$"] 10
 
 # change volume or toggle mute
@@ -164,7 +168,7 @@ gaps inner 5
 smart_gaps on
 
 # set wallpaper
-exec_always feh --bg-scale $HOME/Downloads/wallpaper.jpg
+exec_always feh --no-fehbg --bg-scale $HOME/Pictures/wallpaper.jpg
 # start polybar
 exec_always --no-startup-id $HOME/.config/polybar/launch.sh
 

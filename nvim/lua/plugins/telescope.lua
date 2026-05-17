@@ -17,7 +17,7 @@ return {
         mappings = {
           i = {
             ['<esc>'] = actions.close, -- close if esc key is pressed in insert mode
-            ['<c-w>'] = actions.send_selected_to_qflist + actions.open_qflist,
+            ['<c-e>'] = actions.send_selected_to_qflist + actions.open_qflist,
           },
         },
         sorting_strategy = 'ascending', -- as results filter out, list stays at the top

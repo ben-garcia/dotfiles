@@ -1,5 +1,5 @@
-vim.g.mapleader = ' '
-vim.g.maplocalleader = ' '
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 
 -- ruler  - bottom section that shows filename, etc
 -- rulerformat - determines the content of the ruler
