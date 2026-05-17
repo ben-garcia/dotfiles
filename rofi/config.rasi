@@ -1,0 +1,8 @@
+configuration {
+  font: "JetBrainsMono Nerd Font 20";
+  show-icons: true;
+  icon-theme: "Papirus";
+  display-drun: "Power Menu";
+  display-ssh: "Power Menu";
+}
+@theme "/usr/share/rofi/themes/gruvbox-dark-hard.rasi"
