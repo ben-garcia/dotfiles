@@ -10,7 +10,7 @@ set -o pipefail
 # ===================================
 
 if [ $# -ne 1 ]; then
-  echo "usage: ./mint_setup.sh <github_email>"
+  echo "usage: ./$0 <github_email>"
   exit 1
 fi
 
@@ -55,19 +55,7 @@ print_section() {
   echo "====================================="
 }
 
-check_command() {
-  if ! command -v "$1" &> /dev/null; then
-    echo "Error: $1 is required but not installed."
-    exit 1
-  fi
-}
-
 GITHUB_EMAIL="$1"
-
-# Pre-flight checks
-print_section "Pre-flight Checks"
-check_command sudo
-echo "✓ Prerequisites met"
 
 # ===================================
 # System Updates
