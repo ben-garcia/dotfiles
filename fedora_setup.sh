@@ -39,7 +39,7 @@ exec 2>&1
 # Cleanup function for temporary directories
 cleanup() {
   echo "Cleaning up temporary directories..."
-  sudo rm -rf /tmp/alacritty /tmp/i3 /tmp/neovim /tmp/btop /tmp/dotfiles
+  rm -rf /tmp/alacritty /tmp/i3 /tmp/neovim /tmp/btop /tmp/dotfiles
 }
 # when the program exits, run the cleanup function 
 trap cleanup EXIT
@@ -131,11 +131,24 @@ fi
 # Configure Zsh
 # ===================================
 
-# 1. Always ensure your user's shell is set to Zsh
-if [ "$SHELL" != "$(which zsh)" ]; then
+# 1. Always ensure your user's shell is set to Zsh safely
+TARGET_SHELL="/usr/bin/zsh"
+
+if [ "$SHELL" != "$TARGET_SHELL" ]; then
   print_section "Changing Default Shell to Zsh"
-  sudo chsh -s "$(which zsh)" "$USER"
-  echo "✓ Default shell changed to Zsh for $USER"
+  
+  # Double-check that our target path is actually valid and registered
+  if grep -q "^$TARGET_SHELL$" /etc/shells; then
+    sudo chsh -s "$TARGET_SHELL" "$USER"
+    echo "✓ Default shell changed to Zsh for $USER"
+  elif grep -q "/zsh" /etc/shells; then
+    # Fallback to whatever Zsh path is registered in /etc/shells
+    REGISTERED_ZSH=$(grep "/zsh" /etc/shells | head -n 1)
+    sudo chsh -s "$REGISTERED_ZSH" "$USER"
+    echo "✓ Default shell changed to Zsh ($REGISTERED_ZSH) for $USER"
+  else
+    echo "Error: Zsh is installed but not found in /etc/shells. Skipping shell change." >&2
+  fi
 fi
 
 # 2. Configure system-wide ZDOTDIR if not already done
@@ -334,29 +347,40 @@ fi
 # ===================================
 # Download dotfiles 
 # ===================================
-if [ ! -d "$HOME/.config/zsh/" ]; then
+
+if [ ! -d "$XDG_CONFIG_HOME/rofi" ]; then
   print_section "Downloading dotfiles"
   
   # Ensure target directory exists
-  mkdir -p "$HOME/.config"
+  mkdir -p "$XDG_CONFIG_HOME"
   
+  # Clean up any lingering partial clones before cloning
+  rm -rf /tmp/dotfiles
   git clone https://github.com/ben-garcia/dotfiles /tmp/dotfiles
-  pushd /tmp/dotfiles/config > /dev/null
   
-  # Use dotglob so the wildcard * captures hidden files/folders (e.g., .config)
-  shopt -s dotglob
+  if [ -d "/tmp/dotfiles/config" ]; then
+   pushd /tmp/dotfiles/config > /dev/null
   
-  # Move the actual configuration directories over
-  mv * "$HOME/.config/"
+   # Use dotglob so wilcards capture hidden assets gracefully
+   shopt -s dotglob
+
+   echo "Syncing configuration files to $XDG_CONFIG_HOME..."
+   # -a preserves attributes (permissions/timestamps), -r copies recursively
+   # This safely merges files into existing directories without wiping them out
+   cp -ar * "$XDG_CONFIG_HOME/"
+
+   shopt -u dotglob
+   popd > /dev/null
+  else
+    echo "Error: 'config' directory not found in the cloned repository." >&2
+    exit 1
+  fi
   
-  shopt -u dotglob
-  popd > /dev/null
-  
-  if [ -f "$HOME/.config/rofi/power-menu.sh" ]; then
+  if [ -f "$XDG_CONFIG_HOME/rofi/power-menu.sh" ]; then
     chmod +x "$HOME/.config/rofi/power-menu.sh"
   fi
   
-  echo "✓ Dotfiles downloaded in setup"
+  echo "✓ Dotfiles downloaded successfully deplayed"
 else
   echo "✓ Dotfiles already setup"
 fi
@@ -367,7 +391,7 @@ fi
 
 if [ ! -f $HOME/Pictures/wallpaper.jpg ]; then
   mkdir -p $HOME/Pictures
-  curl -L -o $HOME/Pictures/wallpaper.jpg "http://s1.picswalls.com/wallpapers/2014/02/19/moon-background_111723746_31.jpg"
+  curl -L -o $HOME/Pictures/wallpaper.jpg "http://s1.picswalls.com/wallpapers/2014/02/19/moon-background_111723746_31.jpg" || echo "Warning: Wallpaper download failed"
   echo "✓ Downloaded default wallpaper"
 else
   echo "✓ Wallpaper detected"
@@ -379,7 +403,7 @@ fi
 
 if [ ! -f $HOME/Pictures/screensaver.png ]; then
   mkdir -p $HOME/Pictures
-  curl -L -o $HOME/Pictures/screensaver.png https://images2.alphacoders.com/109/1098024.png
+  curl -L -o $HOME/Pictures/screensaver.png "https://images2.alphacoders.com/109/1098024.png" || echo "Warning: Screensaver download failed"
   echo "✓ Downloaded default screensaver"
 else
   echo "✓ Screensaver detected"
