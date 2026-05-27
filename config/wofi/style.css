@@ -1,0 +1,51 @@
+/* ~/.config/wofi/style.css */
+
+/* Define Gruvbox Dark Hard colors */
+@define-color bg #1d2021;
+@define-color bg_alt #282828;
+@define-color fg #ebdbb2;
+@define-color accent #b8bb26; /* Gruvbox Green */
+@define-color gray #a89984;
+
+* {
+    font-family: "JetBrainsMono Nerd Font";
+    font-size: 20px;
+    color: @fg;
+}
+
+window {
+    background-color: @bg;
+    border: 2px solid @accent;
+    border-radius: 8px;
+}
+
+#outer-box {
+    padding: 10px;
+    background-color: @bg;
+}
+
+#input {
+    background-color: @bg_alt;
+    border: 1px solid @gray;
+    color: @fg;
+    padding: 8px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+#scroll {
+    background-color: @bg;
+}
+
+#text {
+    padding: 4px;
+}
+
+#entry:selected {
+    background-color: @accent;
+    border-radius: 4px;
+}
+
+#entry:selected #text {
+    color: @bg; /* Invert text color on choice for visibility */
+}

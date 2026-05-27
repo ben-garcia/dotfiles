@@ -1,0 +1,195 @@
+# Sway config file (Converted from i3)
+#
+# Please see https://swaywm.org/ for a complete reference!
+
+# use alt key
+set $mod Mod1
+
+# uses pango to render window titles
+font pango: JetBrainsMonoNerdFontMono 13
+
+# Use Mouse+$mod to drag floating windows to their wanted position
+floating_modifier $mod
+
+# start a terminal
+set $term alacritty
+bindsym $mod+Return exec $term 
+
+# kill focused window
+bindsym $mod+Shift+q kill
+
+# start wofi (a program launcher replacement for rofi)
+bindsym $mod+d exec wofi --show run --font "JetBrainsMono Nerd Font 13"
+
+# change focus
+bindsym $mod+h focus left
+bindsym $mod+j focus down
+bindsym $mod+k focus up
+bindsym $mod+l focus right
+
+# move focused window
+bindsym $mod+Shift+h move left
+bindsym $mod+Shift+j move down
+bindsym $mod+Shift+k move up
+bindsym $mod+Shift+l move right
+
+# split in horizontal orientation
+bindsym $mod+c split h
+
+# split in vertical orientation
+bindsym $mod+v split v
+
+# enter fullscreen mode for the focused container
+bindsym $mod+f fullscreen toggle
+
+# change container layout (stacked, tabbed, toggle split)
+bindsym $mod+s layout stacking
+bindsym $mod+w layout tabbed
+bindsym $mod+e layout toggle split
+
+# toggle tiling / floating
+bindsym $mod+Shift+space floating toggle
+
+# change focus between tiling / floating windows
+bindsym $mod+space focus mode_toggle
+
+# focus the parent container
+bindsym $mod+a focus parent
+
+# focus the child container
+bindsym $mod+z focus child
+
+# switch to workspace
+bindsym $mod+1 workspace 1
+bindsym $mod+2 workspace 2
+bindsym $mod+3 workspace 3
+bindsym $mod+4 workspace 4
+bindsym $mod+5 workspace 5
+bindsym $mod+6 workspace 6
+bindsym $mod+7 workspace 7
+bindsym $mod+8 workspace 8
+bindsym $mod+9 workspace 9
+bindsym $mod+0 workspace 10
+
+# move focused container to workspace
+bindsym $mod+Shift+1 move container to workspace 1
+bindsym $mod+Shift+2 move container to workspace 2
+bindsym $mod+Shift+3 move container to workspace 3
+bindsym $mod+Shift+4 move container to workspace 4
+bindsym $mod+Shift+5 move container to workspace 5
+bindsym $mod+Shift+6 move container to workspace 6
+bindsym $mod+Shift+7 move container to workspace 7
+bindsym $mod+Shift+8 move container to workspace 8
+bindsym $mod+Shift+9 move container to workspace 9
+bindsym $mod+Shift+0 move container to workspace 10
+
+# reload the configuration file
+bindsym $mod+Shift+c reload
+
+# exit sway (logs you out of your Wayland session)
+bindsym $mod+Shift+e exec "swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -b 'Yes, exit sway' 'swaymsg exit'"
+
+# launch power menu (Make sure to update your script to use wofi if needed!)
+bindsym $mod+Shift+p exec ~/.config/wofi/power-menu.sh
+
+# active resize mode
+bindsym $mod+r mode "resize"
+
+# resize window (you can also use the mouse for that)
+mode "resize" {
+    # Pressing left will shrink the window’s width.
+    bindsym h resize shrink width 10 px or 10 ppt
+    # Pressing right will grow the window’s width.
+    bindsym j resize grow height 10 px or 10 ppt
+    # Pressing up will shrink the window’s height.
+    bindsym k resize shrink height 10 px or 10 ppt
+    # Pressing down will grow the window’s width.
+    bindsym l resize grow width 10 px or 10 ppt
+
+    # back to normal: Enter or Escape
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}
+
+# active launcher mode
+bindsym $mod+o mode "launcher"
+
+mode "launcher" {
+    bindsym f exec firefox
+    bindsym l exec librewolf
+    bindsym i exec inkscape
+    bindsym b exec alacritty --class alac_btop -e btop
+
+    # back to normal: Enter or Escape
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}
+
+# assignments and window rules (Wayland uses app_id, XWayland uses class)
+assign [app_id="firefox"] 1
+assign [class="^firefox$"] 1
+
+assign [app_id="librewolf"] 1
+assign [class="^librewolf$"] 1
+
+for_window [app_id="librewolf" title=".*LibreWolf Private Browsing.*"] move container to workspace 2
+for_window [class="^librewolf$" title=".*LibreWolf Private Browsing.*"] move container to workspace 2
+
+for_window [app_id="firefox" title=".*Firefox Private Browsing.*"] move container to workspace 2
+for_window [class="^firefox$" title=".*Firefox Private Browsing.*"] move container to workspace 2
+
+assign [app_id="Inkscape"] 8
+assign [class="^Inkscape$"] 8
+
+assign [app_id="alac_btop"] 10
+assign [class="^alac_btop$"] 10
+
+# change volume or toggle mute
+bindsym XF86AudioRaiseVolume exec amixer -q -D pulse sset Master 5%+
+bindsym XF86AudioLowerVolume exec amixer -q -D pulse sset Master 5%-
+bindsym XF86AudioMute exec amixer -q -D pulse sset Master toggle
+# change volume or toggle mute (WirePlumber)
+bindsym XF86AudioRaiseVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
+bindsym XF86AudioLowerVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+bindsym XF86AudioMute exec wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+
+# screen brightness controls
+bindsym XF86MonBrightnessUp exec brightnessctl set +20
+bindsym XF86MonBrightnessDown exec brightnessctl set 20-
+
+# toggle touchpad (Note: You may need to look into `swaymsg input` for a native Wayland solution)
+bindsym XF86TouchpadToggle exec $HOME/.config/i3/scripts/toggle_touchpad.sh
+
+# lock the system (Using swaylock instead of i3lock)
+bindsym XF86ScreenSaver exec swaylock -i $HOME/Downloads/screensaver.png
+
+# remove border from new windows
+default_border none 
+# hide container borders adjacent to the screen edges
+hide_edge_borders both
+# hide the borders for all windows 
+for_window [app_id=".*"] border pixel 0
+for_window [class=".*"] border pixel 0
+
+# gap between windows
+gaps inner 5
+# no gaps shown when there is only a single window in a workspace
+smart_gaps on
+
+# set wallpaper using swaybg
+exec swaybg -i $HOME/Pictures/wallpaper.jpg -m fill
+
+# Start Waybar
+bar {
+    swaybar_command waybar
+}
+
+# applications to launch at startup
+# exec firefox
+# exec alacritty --class alac_btop -e btop
+xwayland enable
+
+# Start the VirtualBox guest user agent on startup
+# exec VBoxClient --clipboard
+
+exec ~/.config/sway/vbox-clipboard.sh

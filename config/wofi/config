@@ -1,0 +1,20 @@
+# ~/.config/wofi/config
+
+# Enable drun mode by default
+mode=drun
+
+# Enable icons
+allow_images=true
+
+# Use your icon theme
+icon_theme=Papirus
+
+# Replaces your display name string (Prompt text)
+prompt=Power Menu
+
+# Matching mode (fuzzy, contains, strict-contains)
+matching=contains
+
+# Basic dimensions (adjust as preferred)
+width=40%
+height=30%

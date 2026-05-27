@@ -1,0 +1,91 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 40,
+    "spacing": 10, // Replaces module-margin = 10px
+    "tooltip": false,
+
+    // Layout configuration
+    "modules-left": [
+        "sway/workspaces"
+    ],
+    "modules-center": [],
+    "modules-right": [
+        "cpu",
+        "temperature",
+        "memory",
+        "backlight",
+        "pulseaudio",
+        "network",
+        "clock"
+    ],
+
+    // Modules Configuration
+    "sway/workspaces": {
+        "disable-click": true,
+        "disable-scroll": true,
+        "all-outputs": true,
+        "format": "{icon} {name}",
+        "format-icons": {
+            "1": "",
+            "2": "󱐡",
+            "3": "",
+            "4": "",
+            "5": "",
+            "6": "",
+            "7": "",
+            "8": "",
+            "9": "",
+            "10": "󱎴"
+        }
+    },
+
+    "cpu": {
+        "format": " {usage}%",
+        "critical-threshold": 90,
+        "format-critical": " {usage}%"
+    },
+
+    "temperature": {
+        // Thermal Zones: Sway/Waybar reads thermal data directly from the Linux /sys/class/thermal/ tree. If your temperature reading doesn't appear or seems off, change the "thermal-zone": 2 line in config.jsonc to 0 or 1.
+        "thermal-zone": 2, // You may need to tweak this zone index for x86_pkg_temp
+        "base-temperature": 20,
+        "critical-threshold": 80,
+        "format": "( {temperatureC}°C)",
+        "format-critical": " {temperatureC}°C"
+    },
+
+    "memory": {
+        "format": " {percentage}% ({used:0.1f}GiB)",
+        "format-critical": " {percentage}% ({used:0.1f}GiB/{total:0.1f}GiB)",
+        "critical-threshold": 90
+    },
+
+    "backlight": {
+        "device": "intel_backlight", // Adjust if your backlight folder name differs
+        "format": "{icon} {percent}%",
+        "format-icons": ["󰃝", "󰃞", "󰃟", "󰃠"]
+    },
+
+    "pulseaudio": {
+        // Replaces internal/alsa; pulseaudio/pipewire standard module
+        "format": "{icon} {volume}%",
+        "format-muted": "󰖁 muted",
+        "format-icons": {
+            "default": ["󰕿", "󰖀", "󰕾"]
+        },
+        "on-click": "" // Keeps it non-interactive as requested
+    },
+
+    "network": {
+        "interface": "enp0s3",
+        "format-wifi": "{icon} {essid} (󰘊 {signalStrength}%)",
+        "format-disconnected": "󱛅 not connected",
+        "format-icons": ["󱛅", "󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
+    },
+
+    "clock": {
+        // Replaces internal/date
+        "format": " {0:%m-%d-%Y} 󱑂 {0:%I:%M}",
+    }
+}
