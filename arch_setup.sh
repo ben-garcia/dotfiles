@@ -14,6 +14,15 @@ if [ $# -ne 1 ]; then
   exit 1
 fi
 
+while true; do
+  read -r -p "Do you want to use Wayland (if no, use i3)? (y/n): " temp_input
+  case "-$temp_input" in
+      -[Yy]*) USE_WAYLAND="y"; break;;
+      -[Nn]*) USE_WAYLAND="n"; break;;
+      *) echo "Please answer y or n.";;
+  esac
+done
+
 # Pre-authenticate sudo to avoid password prompts during script execution
 sudo -v
 
@@ -61,8 +70,6 @@ check_command() {
     exit 1
   fi
 }
-
-read -n 1 -p "Do you want to use Wayland(if no, use i3)? (y/n): " USE_WAYLAND
 
 GITHUB_EMAIL="$1"
 
