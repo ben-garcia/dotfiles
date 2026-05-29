@@ -15,7 +15,7 @@ if [ $# -ne 1 ]; then
 fi
 
 while true; do
-  read -r -p "Do you want to use Wayland (if no, use i3)? (y/n): " temp_input
+  read -r -p "Do you want to use Wayland with Sway(if no, use X11 with i3)? (y/n): " temp_input
   case "-$temp_input" in
       -[Yy]*) USE_WAYLAND="y"; break;;
       -[Nn]*) USE_WAYLAND="n"; break;;
@@ -130,7 +130,8 @@ sudo pacman -S --needed --noconfirm \
 
 print_section "Downloading dotfiles"
 
-if [ ! -d "$XDG_CONFIG_HOME/wofi" ] && [ "$USE_WAYLAND" == 'y' ] || [ ! -d "$XDG_CONFIG_HOME/rofi" ] && [ "$USE_WAYLAND" == 'n' ]; then
+if ([ ! -d "$XDG_CONFIG_HOME/wofi" ] && [ "$USE_WAYLAND" == 'y' ]) ||
+   ([ ! -d "$XDG_CONFIG_HOME/rofi" ] && [ "$USE_WAYLAND" == 'n' ]); then
   mkdir -p "$XDG_CONFIG_HOME"
   rm -rf /tmp/dotfiles
   git clone https://github.com/ben-garcia/dotfiles /tmp/dotfiles
@@ -147,9 +148,21 @@ if [ ! -d "$XDG_CONFIG_HOME/wofi" ] && [ "$USE_WAYLAND" == 'y' ] || [ ! -d "$XDG
     echo "Error: 'config' directory not found in the cloned repository." >&2
     exit 1
   fi
+
+  # Remove uneccessary configuration files
+  # When setting up dotfiles, all files are copied to .config directory
+  if [ "$USE_WAYLAND" == 'y' ]; then
+    # remove x11 specific files
+    rm -rf $XDG_CONFIG_HOME/i3 $XDG_CONFIG_HOME/polybar $XDG_CONFIG_HOME/rofi
+  else
+    # remove wayland specific files
+    rm -rf $XDG_CONFIG_HOME/sway $XDG_CONFIG_HOME/waybar $XDG_CONFIG_HOME/wofi
+  fi
   
   if [ -f "$XDG_CONFIG_HOME/wofi/power-menu.sh" ]; then
     chmod +x "$XDG_CONFIG_HOME/wofi/power-menu.sh"
+  elif [ -f "$XDG_CONFIG_HOME/rofi/power-menu.sh" ]; then
+    chmod +x "$XDG_CONFIG_HOME/rofi/power-menu.sh"
   fi
   
   echo "✓ Dotfiles successfully deployed"
@@ -157,18 +170,8 @@ else
   echo "✓ Dotfiles already setup"
 fi
 
-# Remove uneccessary configuration files
-# When setting up dotfiles, all files are copied to .config directory
-if [ "$USE_WAYLAND" == 'y' ]; then
-  # remove x11 specific files
-  rm -rf $XDG_CONFIG_HOME/i3 $XDG_CONFIG_HOME/polybar $XDG_CONFIG_HOME/rofi
-else
-  # remove wayland specific files
-  rm -rf $XDG_CONFIG_HOME/sway $XDG_CONFIG_HOME/waybar $XDG_CONFIG_HOME/wofi
-fi
-
 # ===================================
-# Configure Sway (Wayland) & TTY Login
+# Configure Display Server 
 # ===================================
 
 if [ "$USE_WAYLAND" == 'y' ]; then
