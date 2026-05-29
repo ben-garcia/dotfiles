@@ -183,9 +183,3 @@ bar {
 # applications to launch at startup
 exec firefox
 exec alacritty --class alac_btop -e btop
-
-#############VIRTUALBOX ONLY ################### 
-xwayland enable
-
-exec ~/.config/sway/vbox-clipboard.sh
-#############VIRTUALBOX ONLY ################### 

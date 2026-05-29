@@ -5,7 +5,8 @@
 @define-color bg3 #665c54;
 @define-color bg4 #7c6f64;
 @define-color fg0 #fbf1c7;
-@define-color fg1 #ebdbb2;
+/* @define-color fg1 #ebdbb2; */
+@define-color fg1 #ffffff;
 @define-color fg2 #d5c4a1;
 @define-color fg3 #bdae93;
 @define-color fg4 #a89984;
