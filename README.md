@@ -23,25 +23,21 @@ curl -o- https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master
 ```
 
 ## Modify the script
+*NOTE: replace `<script_name>` with the either `arch_setup`, `fedora_setup`, or `mint_setup`*
+
   1. Download the script
 ```console
-curl -LO https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/arch_setup.sh
-curl -LO https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/fedora_setup.sh
-curl -LO https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/mint_setup.sh
+curl -LO https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/<script_name>.sh
 ```
 
   2. Make changes
 
   3. Make it executable
 ```console
-chmod +x arch_setup.sh
-chmod +x fedora_setup.sh
-chmod +x mint_setup.sh
+chmod +x <script_name>.sh
 ```
 
   4. Run it
 ```console
-./arch_setup.sh "your-email@example.com"
-./fedora_setup.sh "your-email@example.com"
-./mint_setup.sh "your-email@example.com"
+./<script_name>.sh "your-email@example.com"
 ```
