@@ -144,10 +144,6 @@ assign [class="^Inkscape$"] 8
 assign [app_id="alac_btop"] 10
 assign [class="^alac_btop$"] 10
 
-# change volume or toggle mute
-# bindsym XF86AudioRaiseVolume exec amixer -q -D pulse sset Master 5%+
-# bindsym XF86AudioLowerVolume exec amixer -q -D pulse sset Master 5%-
-# bindsym XF86AudioMute exec amixer -q -D pulse sset Master toggle
 # change volume or toggle mute (WirePlumber)
 bindsym XF86AudioRaiseVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+
 bindsym XF86AudioLowerVolume exec wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
@@ -160,7 +156,7 @@ bindsym XF86MonBrightnessDown exec brightnessctl set 20-
 # toggle touchpad (Note: You may need to look into `swaymsg input` for a native Wayland solution)
 bindsym XF86TouchpadToggle exec $HOME/.config/sway/scripts/toggle_touchpad.sh
 
-# lock the system (Using swaylock instead of i3lock)
+# lock the system
 bindsym XF86ScreenSaver exec swaylock -i $HOME/Pictures/screensaver.png
 
 # remove border from new windows
