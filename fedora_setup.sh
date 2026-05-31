@@ -1,5 +1,4 @@
 #!/usr/bin/bash
-
 # Exit on error, undefined variables, and pipe failures
 set -e
 set -u
@@ -12,6 +11,23 @@ set -o pipefail
 if [ $# -ne 1 ]; then
   echo "usage: ./$0 <github_email>"
   exit 1
+fi
+
+# redirects both standard output and errors
+if command -v i3 >/dev/null 2>&1 && ! command -v sway >/dev/null 2>&1; then
+    USE_WAYLAND="n" # using i3 spin
+elif command -v sway >/dev/null 2>&1 && ! command -v i3 >/dev/null 2>&1; then
+    USE_WAYLAND="y" # using sway spin
+else
+  # using workstation
+  while true; do
+    read -r -p "Do you want to use Wayland with Sway(if no, use X11 with i3)? (y/n): " temp_input
+    case "-$temp_input" in
+        -[Yy]*) USE_WAYLAND="y"; break;;
+        -[Nn]*) USE_WAYLAND="n"; break;;
+        *) echo "Please answer y or n.";;
+    esac
+  done
 fi
 
 # Pre-authenticate sudo to avoid password prompts during script execution
@@ -39,7 +55,7 @@ exec 2>&1
 # Cleanup function for temporary directories
 cleanup() {
   echo "Cleaning up temporary directories..."
-  rm -rf /tmp/alacritty /tmp/i3 /tmp/neovim /tmp/btop /tmp/dotfiles
+  rm -rf /tmp/dotfiles
 }
 # when the program exits, run the cleanup function 
 trap cleanup EXIT
@@ -77,10 +93,20 @@ print_section "Updating the System"
 sudo dnf upgrade --refresh -y
 
 # ===================================
-# Install Dependencies
+# Install Dependencies & Core Tools
 # ===================================
 
 print_section "Installing Dependencies"
+if [ "$USE_WAYLAND" == 'y' ]; then
+  echo -e "\nInstalling Sway"
+  sudo dnf install -y sway swaybg swaylock waybar wofi wl-clipboard
+elif [ "$USE_WAYLAND" == 'n' ]; then
+  echo -e "\nInstalling i3wm"
+  sudo dnf install -y xorg-x11-server-Xorg xorg-x11-xinit i3 polybar i3lock rofi feh xclip
+else
+  echo -e "\nInvalid option... terminating"
+  exit 1
+fi
 
 # Install Fedora development tools group and essential compilation libraries
 sudo dnf install -y @development-tools
@@ -90,15 +116,10 @@ sudo dnf install -y @development-tools
 # ===================================
 
 print_section "Installing Applications via DNF"
-# Note: 'fd-find' binary is called 'fd' natively in Fedora, 'bat' is called 'bat'
 sudo dnf install -y \
-	polybar \
-	rofi \
 	zsh \
-	feh \
 	bat \
 	fd-find \
-	xclip \
 	ripgrep \
 	tree \
 	gh \
@@ -106,7 +127,6 @@ sudo dnf install -y \
 	gcc-c++ \
 	brightnessctl \
 	alacritty \
-	i3 \
 	neovim \
 	btop \
 	fzf \
@@ -114,17 +134,106 @@ sudo dnf install -y \
 	lightdm-gtk-greeter
 
 # ===================================
-# Configure i3
+# Download dotfiles
+# ===================================
+#
+print_section "Downloading dotfiles"
+
+if ([ ! -d "$XDG_CONFIG_HOME/wofi" ] && [ "$USE_WAYLAND" == 'y' ]) ||
+   ([ ! -d "$XDG_CONFIG_HOME/rofi" ] && [ "$USE_WAYLAND" == 'n' ]); then
+  # Ensure target directory exists
+  mkdir -p "$XDG_CONFIG_HOME"
+
+  # Clean up any lingering partial clones before cloning
+  rm -rf /tmp/dotfiles
+  git clone https://github.com/ben-garcia/dotfiles /tmp/dotfiles
+
+  if [ -d "/tmp/dotfiles/config" ]; then
+   pushd /tmp/dotfiles/config > /dev/null
+
+   # Use dotglob so wilcards capture hidden assets gracefully
+   shopt -s dotglob
+
+   echo "Syncing configuration files to $XDG_CONFIG_HOME..."
+   # -a preserves attributes (permissions/timestamps), -r copies recursively
+   # This safely merges files into existing directories without wiping them out
+   cp -ar * "$XDG_CONFIG_HOME/"
+
+   shopt -u dotglob
+   popd > /dev/null
+  else
+    echo "Error: 'config' directory not found in the cloned repository." >&2
+    exit 1
+  fi
+
+  # Remove uneccessary configuration files
+  # When setting up dotfiles, all files are copied to .config directory
+  if [ "$USE_WAYLAND" == 'y' ]; then
+    # remove x11 specific files
+    rm -rf $XDG_CONFIG_HOME/i3 $XDG_CONFIG_HOME/polybar $XDG_CONFIG_HOME/rofi
+  else
+    # remove wayland specific files
+    rm -rf $XDG_CONFIG_HOME/sway $XDG_CONFIG_HOME/waybar $XDG_CONFIG_HOME/wofi
+  fi
+  
+  if [ -f "$XDG_CONFIG_HOME/wofi/power-menu.sh" ]; then
+    chmod +x "$XDG_CONFIG_HOME/wofi/power-menu.sh"
+  elif [ -f "$XDG_CONFIG_HOME/rofi/power-menu.sh" ]; then
+    chmod +x "$XDG_CONFIG_HOME/rofi/power-menu.sh"
+  fi
+  
+  echo "✓ Dotfiles downloaded successfully deplayed"
+else
+  echo "✓ Dotfiles already setup"
+fi
+
+# ===================================
+# Configure Display Server
 # ===================================
 
-print_section "Configuring i3"
+if [ "$USE_WAYLAND" == 'y' ]; then
+  print_section "Configuring Sway"
 
-if [ ! -f "$HOME/.xinitrc" ]; then
-  echo -e "exec i3\nstartx" > "$HOME/.xinitrc"
-  sudo systemctl enable lightdm.service -f
-  echo -e "✓ i3 has been configured"
+  # Ensure the profile file exists
+  mkdir -p "$XDG_CONFIG_HOME/zsh"
+  touch "$XDG_CONFIG_HOME/zsh/.zprofile"
+
+  # Configure automatic TTY invocation for Sway (Clean, native Wayland practice)
+  if ! grep -q "exec sway" "$XDG_CONFIG_HOME/zsh/.zprofile"; then
+    cat << 'EOF' >> "$XDG_CONFIG_HOME/zsh/.zprofile"
+
+# If running from tty1, automatically launch Sway
+if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+  exec sway
+fi
+EOF
+    echo "✓ Sway configured to auto-start securely on TTY1 login"
+  else
+    echo "✓ Sway already configured in .zprofile"
+  fi
 else
-  echo -e "✓ i3 already configured"
+  print_section "Configuring i3"
+
+  echo "exec i3" > $HOME/.xinitrc
+
+  # Ensure the profile file exists
+  mkdir -p "$XDG_CONFIG_HOME/zsh"
+  touch "$XDG_CONFIG_HOME/zsh/.zprofile"
+
+  # Configure automatic TTY invocation for i3
+  if ! grep -q "exec i3" "$XDG_CONFIG_HOME/zsh/.zprofile"; then
+    cat << 'EOF' >> "$XDG_CONFIG_HOME/zsh/.zprofile"
+
+# If running from tty1, automatically launch i3 via startx
+if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+  exec startx
+fi
+EOF
+    sudo systemctl enable lightdm.service -f
+    echo "✓ i3 configured to auto-start securely on TTY1 login"
+  else
+    echo "✓ i3 already configured in .zprofile"
+  fi
 fi
 
 # ===================================
@@ -141,21 +250,15 @@ if [ "$SHELL" != "$TARGET_SHELL" ]; then
   if grep -q "^$TARGET_SHELL$" /etc/shells; then
     sudo chsh -s "$TARGET_SHELL" "$USER"
     echo "✓ Default shell changed to Zsh for $USER"
-  elif grep -q "/zsh" /etc/shells; then
-    # Fallback to whatever Zsh path is registered in /etc/shells
-    REGISTERED_ZSH=$(grep "/zsh" /etc/shells | head -n 1)
-    sudo chsh -s "$REGISTERED_ZSH" "$USER"
-    echo "✓ Default shell changed to Zsh ($REGISTERED_ZSH) for $USER"
   else
     echo "Error: Zsh is installed but not found in /etc/shells. Skipping shell change." >&2
   fi
 fi
 
 # 2. Configure system-wide ZDOTDIR if not already done
-if ! grep -q "ZDOTDIR" /etc/zshenv 2>/dev/null; then
+if ! grep -q "ZDOTDIR" /etc/zsh/zshenv 2>/dev/null; then
   print_section "Configuring Zsh Environment"
 
-  sudo mkdir -p /etc/zsh
   mkdir -p "$XDG_STATE_HOME/zsh"
   touch "$XDG_STATE_HOME/zsh/zsh_history"
 
@@ -325,16 +428,10 @@ else
 fi
 
 # ===================================
-# Configure Bat and Brightnessctl
+# Configure and Brightnessctl
 # ===================================
 
-print_section "Configuring Bat and Brightnessctl"
-
-# Bat logic cleaned up because Fedora uses the binary name 'bat' outright.
-if ! command -v bat &> /dev/null; then
-  echo "Error: 'bat' executable not found in PATH." >&2
-  exit 1
-fi
+print_section "Configuring Brightnessctl"
 
 # Brightnessctl (group assignment remains valid on Fedora)
 if command -v brightnessctl &> /dev/null; then
@@ -342,47 +439,6 @@ if command -v brightnessctl &> /dev/null; then
   echo "✓ Brightnessctl configured"
 else
   echo "✓ Brightnessctl not available"
-fi
-
-# ===================================
-# Download dotfiles 
-# ===================================
-
-if [ ! -d "$XDG_CONFIG_HOME/rofi" ]; then
-  print_section "Downloading dotfiles"
-  
-  # Ensure target directory exists
-  mkdir -p "$XDG_CONFIG_HOME"
-  
-  # Clean up any lingering partial clones before cloning
-  rm -rf /tmp/dotfiles
-  git clone https://github.com/ben-garcia/dotfiles /tmp/dotfiles
-  
-  if [ -d "/tmp/dotfiles/config" ]; then
-   pushd /tmp/dotfiles/config > /dev/null
-  
-   # Use dotglob so wilcards capture hidden assets gracefully
-   shopt -s dotglob
-
-   echo "Syncing configuration files to $XDG_CONFIG_HOME..."
-   # -a preserves attributes (permissions/timestamps), -r copies recursively
-   # This safely merges files into existing directories without wiping them out
-   cp -ar * "$XDG_CONFIG_HOME/"
-
-   shopt -u dotglob
-   popd > /dev/null
-  else
-    echo "Error: 'config' directory not found in the cloned repository." >&2
-    exit 1
-  fi
-  
-  if [ -f "$XDG_CONFIG_HOME/rofi/power-menu.sh" ]; then
-    chmod +x "$HOME/.config/rofi/power-menu.sh"
-  fi
-  
-  echo "✓ Dotfiles downloaded successfully deplayed"
-else
-  echo "✓ Dotfiles already setup"
 fi
 
 # ===================================
