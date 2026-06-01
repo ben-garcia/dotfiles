@@ -120,7 +120,10 @@ print_section "Installing Applications via DNF"
 sudo dnf install -y \
 	zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
   brightnessctl alacritty neovim btop fzf lightdm \
-  lightdm-gtk-greeter dunst power-profiles-daemon
+  lightdm-gtk-greeter dunst
+
+# install power-profiles-daemon and remove conflicting packages(tuned)
+sudo dnf install -y --allowerasing power-profiles-daemon
 
 # ===================================
 # Download dotfiles
@@ -434,17 +437,10 @@ fi
 # Configure daemons 
 # ===================================
 
-dunst_status=$(systemctl --user status dunst | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
-power_profiles_status=$(sudo systemctl status power-profiles-daemon | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+print_section "Configuring Daemons"
 
-if [ "$dunst_status" == "active" ]; then
-  systemctl --user enable --now dunst
-  echo "✓ dunst configured"
-else
-  echo "✓ dunst is already running"
-fi
-
-if [ "$power_profiles_status" == "active" ]; then
+# 'if' statement naturally intercepts the exit code, preventing 'set -e' from crashing
+if ! sudo systemctl is-active --quiet power-profiles-daemon; then
   sudo systemctl enable --now power-profiles-daemon
   echo "✓ power-profiles-daemon configured"
 else

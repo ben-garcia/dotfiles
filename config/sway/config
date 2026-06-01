@@ -180,6 +180,7 @@ bar {
     swaybar_command waybar
 }
 
+exec dunst
 # applications to launch at startup
 exec firefox
 exec alacritty --class alac_btop -e btop

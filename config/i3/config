@@ -167,11 +167,13 @@ gaps inner 5
 # no gaps shown when there is only a single window in a workspace
 smart_gaps on
 
-# set wallpaper
-exec_always feh --no-fehbg --bg-scale $HOME/Pictures/wallpaper.jpg
 # start polybar
 exec_always --no-startup-id $HOME/.config/polybar/launch.sh
+# start notification daemon
+exec dunst --no-startup-id
+# set wallpaper
+exec_always feh --no-fehbg --bg-scale $HOME/Pictures/wallpaper.jpg
 
-#applications to launch startup
+# applications to launch startup
 exec firefox
 exec exec alacritty --class alac_btop -e btop
