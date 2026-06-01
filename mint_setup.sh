@@ -70,34 +70,14 @@ sudo apt update && sudo apt upgrade -y
 
 print_section "Installing Dependencies"
 sudo apt install -y \
-  git \
-  build-essential \
-  pkg-config \
-  libfreetype6-dev \
-  libfontconfig1-dev \
-  meson \
-  ninja-build \
-  cmake \
-  curl \
-  gettext \
-  libxcb1-dev \
-  libxcb-keysyms1-dev \
-  libpango1.0-dev \
-  libxcb-util0-dev \
-  libxcb-icccm4-dev \
-  libyajl-dev \
-  libstartup-notification0-dev \
-  libxcb-randr0-dev \
-  libev-dev \
-  libxcb-cursor-dev \
-  libxcb-xinerama0-dev \
-  libxcb-xkb-dev \
-  libxkbcommon-dev \
-  libxkbcommon-x11-dev \
-  libpcre2-dev \
-  libxcb-shape0-dev \
-  libxcb-xrm-dev
-
+  git build-essential pkg-config libfreetype6-dev \
+  libfontconfig1-dev meson ninja-build cmake curl \
+  gettext libxcb1-dev libxcb-keysyms1-dev libpango1.0-dev \
+  libxcb-util0-dev libxcb-icccm4-dev libyajl-dev \
+  libstartup-notification0-dev libxcb-randr0-dev libev-dev \
+  libxcb-cursor-dev libxcb-xinerama0-dev libxcb-xkb-dev \
+  libxkbcommon-dev libxkbcommon-x11-dev libpcre2-dev \
+  libxcb-shape0-dev libxcb-xrm-dev dunst power-profiles-daemon
 
 # ===================================
 # Install Applications via APT
@@ -438,6 +418,27 @@ if [ ! -d "$HOME/.config/zsh/" ]; then
   echo "✓ Dotfiles downloaded in setup"
 else
   echo "✓ Dotfiles already setup"
+fi
+
+# ===================================
+# Configure daemons 
+# ===================================
+
+dunst_status=$(systemctl --user status dunst | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+power_profiles_status=$(sudo systemctl status power-profiles-daemon | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+
+if [ "$dunst_status" == "active" ]; then
+  systemctl --user enable --now dunst
+  echo "✓ dunst configured"
+else
+  echo "✓ dunst is already running"
+fi
+
+if [ "$power_profiles_status" == "active" ]; then
+  sudo systemctl enable --now power-profiles-daemon
+  echo "✓ power-profiles-daemon configured"
+else
+  echo "✓ power-profiles-daemon is already running"
 fi
 
 # ===================================

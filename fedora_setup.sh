@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+
 # Exit on error, undefined variables, and pipe failures
 set -e
 set -u
@@ -117,21 +118,9 @@ sudo dnf install -y @development-tools
 
 print_section "Installing Applications via DNF"
 sudo dnf install -y \
-	zsh \
-	bat \
-	fd-find \
-	ripgrep \
-	tree \
-	gh \
-	ranger \
-	gcc-c++ \
-	brightnessctl \
-	alacritty \
-	neovim \
-	btop \
-	fzf \
-	lightdm \
-	lightdm-gtk-greeter
+	zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
+  brightnessctl alacritty neovim btop fzf lightdm \
+  lightdm-gtk-greeter dunst power-profiles-daemon
 
 # ===================================
 # Download dotfiles
@@ -235,7 +224,7 @@ EOF
     echo "✓ i3 already configured in .zprofile"
   fi
 fi
-
+ 
 # ===================================
 # Configure Zsh
 # ===================================
@@ -439,6 +428,27 @@ if command -v brightnessctl &> /dev/null; then
   echo "✓ Brightnessctl configured"
 else
   echo "✓ Brightnessctl not available"
+fi
+
+# ===================================
+# Configure daemons 
+# ===================================
+
+dunst_status=$(systemctl --user status dunst | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+power_profiles_status=$(sudo systemctl status power-profiles-daemon | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+
+if [ "$dunst_status" == "active" ]; then
+  systemctl --user enable --now dunst
+  echo "✓ dunst configured"
+else
+  echo "✓ dunst is already running"
+fi
+
+if [ "$power_profiles_status" == "active" ]; then
+  sudo systemctl enable --now power-profiles-daemon
+  echo "✓ power-profiles-daemon configured"
+else
+  echo "✓ power-profiles-daemon is already running"
 fi
 
 # ===================================

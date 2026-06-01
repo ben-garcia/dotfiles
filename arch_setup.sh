@@ -108,21 +108,9 @@ fi
 print_section "Installing Applications via Pacman"
 sudo pacman -S --needed --noconfirm \
     base-devel git unzip curl pipewire pipewire-pulse wireplumber \
-    zsh \
-    bat \
-    fd \
-    ripgrep \
-    tree \
-    github-cli \
-    ranger \
-    brightnessctl \
-    alacritty \
-    neovim \
-    btop \
-    fzf \
-    ttf-jetbrains-mono-nerd \
-    openssh \
-    firefox
+    zsh bat fd ripgrep tree github-cli ranger brightnessctl \
+    alacritty neovim btop fzf ttf-jetbrains-mono-nerd openssh \
+    firefox dunst power-profiles-daemon
 
 # ===================================
 # Download dotfiles 
@@ -383,7 +371,26 @@ else
   echo "✓ Brightnessctl not available"
 fi
 
-print_section "Configuring audio daemons"
+# ===================================
+# Configure daemons 
+# ===================================
+
+dunst_status=$(systemctl --user status dunst | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+power_profiles_status=$(sudo systemctl status power-profiles-daemon | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+
+if [ "$dunst_status" == "active" ]; then
+  systemctl --user enable --now dunst
+  echo "✓ dunst configured"
+else
+  echo "✓ dunst is already running"
+fi
+
+if [ "$power_profiles_status" == "active" ]; then
+  sudo systemctl enable --now power-profiles-daemon
+  echo "✓ power-profiles-daemon configured"
+else
+  echo "✓ power-profiles-daemon is already running"
+fi
 
 if [ ! -d "$XDG_CONFIG_HOME/systemd" ]; then
   ## Unlike system services, audio servers run on a per-user basis. Do not use sudo for this step.

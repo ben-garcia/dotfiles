@@ -1,0 +1,61 @@
+# See dunst(5) for all configuration options
+
+[global]
+    ### Display ###
+
+    monitor = 0
+    # Display notification on focused monitor.  Possible modes are:
+    #   mouse: follow mouse pointer
+    #   keyboard: follow window with keyboard focus
+    #   none: don't follow anything
+    follow = none
+
+    ### Geometry ###
+    width = 300
+    height = 300
+    origin = top-right
+    offset = 10x50
+
+    # Padding between text and separator.
+    padding = 10 
+    # Horizontal padding.
+    horizontal_padding = 20 
+    frame_width = 0
+    # Space between notifications
+    gap_size = 2
+    # Sort messages by urgency.
+    sort = yes
+
+
+    ### Text ###
+
+    font = JetBrainsMonoNerdFontMono 14 
+    # The spacing between lines.
+    line_height = 0
+    # Allow a small subset of html markup in notifications.
+    markup = full
+    # The format of the message.  Possible variables are:
+    format = "<b>%s</b>\n%b"
+    # Alignment of message text.
+    alignment = left
+    # Vertical alignment of message text and icon.
+    vertical_alignment = center
+    # Disable age of message
+    show_age_threshold = -1
+    # Specify where to make an ellipsis in long lines.
+    ellipsize = "end"
+
+[urgency_low]
+    background = "#025d8e"
+    foreground = "#ffffff"
+    timeout = 5
+
+[urgency_normal]
+    background = "#335613"
+    foreground = "#ffffff"
+    timeout = 10 
+
+[urgency_critical]
+    background = "#6d0505"
+    foreground = "#ffffff"
+    timeout = 0
