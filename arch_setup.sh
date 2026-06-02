@@ -110,7 +110,7 @@ sudo pacman -S --needed --noconfirm \
     base-devel git unzip curl pipewire pipewire-pulse wireplumber \
     zsh bat fd ripgrep tree github-cli ranger brightnessctl \
     alacritty neovim btop fzf ttf-jetbrains-mono-nerd openssh \
-    firefox dunst power-profiles-daemon
+    firefox dunst power-profiles-daemon libnotify
 
 # ===================================
 # Download dotfiles 
@@ -173,10 +173,10 @@ if [ "$USE_WAYLAND" == 'y' ]; then
   if ! grep -q "exec sway" "$XDG_CONFIG_HOME/zsh/.zprofile"; then
     cat << 'EOF' >> "$XDG_CONFIG_HOME/zsh/.zprofile"
 
-  # If running from tty1, automatically launch Sway
-  if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
-    exec sway
-  fi
+# If running from tty1, automatically launch Sway
+if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+  exec sway
+fi
 EOF
     echo "✓ Sway configured to auto-start securely on TTY1 login"
   else
@@ -195,10 +195,10 @@ else
   if ! grep -q "exec i3" "$XDG_CONFIG_HOME/zsh/.zprofile"; then
     cat << 'EOF' >> "$XDG_CONFIG_HOME/zsh/.zprofile"
 
-  # If running from tty1, automatically launch i3 via startx
-  if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
-    exec startx
-  fi
+# If running from tty1, automatically launch i3 via startx
+if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+  exec startx
+fi
 EOF
     echo "✓ i3 configured to auto-start securely on TTY1 login"
   else
@@ -375,22 +375,16 @@ fi
 # Configure daemons 
 # ===================================
 
-dunst_status=$(systemctl --user status dunst | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
-power_profiles_status=$(sudo systemctl status power-profiles-daemon | grep Active | sed 's/^[ ]*//' | cut -d ' ' -f2)
+print_section "Configuring Daemons"
 
-if [ "$dunst_status" == "active" ]; then
-  systemctl --user enable --now dunst
-  echo "✓ dunst configured"
-else
-  echo "✓ dunst is already running"
-fi
-
-if [ "$power_profiles_status" == "active" ]; then
+# 'if' statement naturally intercepts the exit code, preventing 'set -e' from crashing
+if ! sudo systemctl is-active --quiet power-profiles-daemon; then
   sudo systemctl enable --now power-profiles-daemon
   echo "✓ power-profiles-daemon configured"
 else
   echo "✓ power-profiles-daemon is already running"
 fi
+
 
 if [ ! -d "$XDG_CONFIG_HOME/systemd" ]; then
   ## Unlike system services, audio servers run on a per-user basis. Do not use sudo for this step.
@@ -401,7 +395,7 @@ else
 fi
 
 # ===================================
-# Download a wallpaper & Screensaver
+# Download a wallpaper
 # ===================================
 
 if [ ! -f "$HOME/Pictures/wallpaper.jpg" ]; then
@@ -411,6 +405,10 @@ if [ ! -f "$HOME/Pictures/wallpaper.jpg" ]; then
 else
   echo "✓ Wallpaper detected"
 fi 
+
+# ===================================
+# Download a screensaver
+# ===================================
 
 if [ ! -f "$HOME/Pictures/screensaver.png" ]; then
   mkdir -p "$HOME/Pictures"
