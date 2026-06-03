@@ -3,7 +3,7 @@ return {
   build = ':TSUpdate',
   lazy = false, -- Keep false to ensure loading for Neo-tree
   main = 'nvim-treesitter.configs', -- Lazy handles the require logic here
-  branch = 'master', -- Explicitly force the stable branch
+  branch = 'main', -- Explicitly force the stable branch
   opts = {
     auto_install = true, -- automatically install missing parsers
     -- Or use a function for more flexibility, e.g. to disable slow treesitter highlight for large files
@@ -15,9 +15,9 @@ return {
       end
     end,
     ensure_installed = {
+      'bash',
       'c',
       'css',
-      'go',
       'html',
       'javascript',
       'json',
@@ -32,6 +32,7 @@ return {
     indent = {
       enable = true,
     },
+    prefer_git =  true,
     sync_install = false,
   },
   -- Fallback config to handle edge cases

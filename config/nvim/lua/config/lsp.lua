@@ -1,4 +1,4 @@
-vim.lsp.enable({ 'clangd', 'cssls', 'eslint', 'lua_ls', 'gopls', 'stylua', 'stylelint_lsp', 'ts_ls' })
+vim.lsp.enable({ 'bashls', 'clangd', 'cssls', 'eslint', 'stylelint_lsp', 'ts_ls' })
 
 vim.diagnostic.config({
   signs = {

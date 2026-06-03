@@ -21,10 +21,8 @@ return {
   filetypes = {
     'javascript',
     'javascriptreact',
-    'javascript.jsx',
     'typescript',
     'typescriptreact',
-    'typescript.tsx',
   },
   workspace_required = true,
   on_attach = function(client, bufnr)
