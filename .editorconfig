@@ -1,0 +1,30 @@
+[*.sh]
+
+# options: 'space' or 'tab'
+indent_style             = space
+# number of spaces (ignored if style is 'tab')
+indent_size              = 4
+# Strips out any spaces left at the end of lines.
+trim_trailing_whitespace = true
+# Ensures your script ends with a clean empty line
+insert_final_newline     = true
+# Controls your line endings.
+end_of_line              = lf
+
+# shfmt specific extensions
+
+#Tells the formatter which shell language rules to apply.
+shell_variant            = bash
+# When a long command is split across multiple lines using
+# binary operators (like &&, ||, or |), this decides where
+# the operator sits.
+binary_next_line         = true
+# Controls whether the patterns inside a case statement get indented.
+switch_case_indent       = false
+# Forces a space after redirection operators like >, <, and >>.
+space_redirects          = true
+# Prevents the formatter from collapsing multiple spaces down to one
+# if you are using them to align columns (like a block of environment variables).
+keep_padding             = true
+# Decides if the opening curly brace { of a function gets its own line.
+function_next_line       = false
