@@ -1,487 +1,398 @@
 #!/usr/bin/bash
 
 # Exit on error, undefined variables, and pipe failures
-set -e
-set -u
-set -o pipefail
+set -euo pipefail
 
-# ===================================
-# Argument Validation
-# ===================================
+RED="\e[1;31m"
+GREEN="\e[1;32m"
+YELLOW="\e[1;33m"
+RESET="\e[0m"
 
-if [ $# -ne 1 ]; then
-  echo "usage: ./$0 <github_email>"
-  exit 1
-fi
+GITHUB_EMAIL="7rubengarcia7@gmail.com"
+DOTFILES_URL="https://github.com/ben-garcia/dotfiles.git"
+PROJECTS_DIR="${HOME}/Projects"
+DOTFILES_DIR="${PROJECTS_DIR}/dotfiles"
 
-# redirects both standard output and errors
-if command -v i3 >/dev/null 2>&1 && ! command -v sway >/dev/null 2>&1; then
-    USE_WAYLAND="n" # using i3 spin
-elif command -v sway >/dev/null 2>&1 && ! command -v i3 >/dev/null 2>&1; then
-    USE_WAYLAND="y" # using sway spin
-else
-  # using workstation
-  while true; do
-    read -r -p "Do you want to use Wayland with Sway(if no, use X11 with i3)? (y/n): " temp_input
-    case "-$temp_input" in
-        -[Yy]*) USE_WAYLAND="y"; break;;
-        -[Nn]*) USE_WAYLAND="n"; break;;
-        *) echo "Please answer y or n.";;
-    esac
-  done
-fi
-
-# Pre-authenticate sudo to avoid password prompts during script execution
+# Pre-authenticate sudo
 sudo -v
 
 # ===================================
 # Configuration and Setup
 # ===================================
 
-# Set default XDG directories if not already set
 export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export NVM_DIR="$XDG_DATA_HOME/nvm"
 
-# Logging
-# automatically log all output of a script to a file, while still showing it on the screen
-# Format: YYYYMMDD_HHMMSS
 LOG_FILE="/tmp/fedora_setup_$(date +%Y%m%d_%H%M%S).log"
-# Splitting standard output (stdout)
 exec > >(tee -a "$LOG_FILE")
-# Merging standard error (stderr)
 exec 2>&1
 
-# Cleanup function for temporary directories
-cleanup() {
-  echo "Cleaning up temporary directories..."
-  rm -rf /tmp/dotfiles
-}
-# when the program exits, run the cleanup function 
-trap cleanup EXIT
-
-# ===================================
-# Helper Functions
-# ===================================
-
-print_section() {
-  echo ""
-  echo "====================================="
-  printf "%-37s\n" "===== $1"
-  echo "====================================="
+# Function to output successful message
+# @1 green text
+# @2 text
+log_info() {
+    echo -e "${GREEN}$1${RESET} $2"
 }
 
-check_command() {
-  if ! command -v "$1" &> /dev/null; then
-    echo "Error: $1 is required but not installed."
-    exit 1
-  fi
+# Function to output an error message before exiting
+# @1 red text
+# @2 text
+log_error() {
+    echo -e "${RED}$1${RESET} $2"
 }
 
-GITHUB_EMAIL="$1"
+# Function to output information text
+# @1 yellow text
+# @2 text
+log_warn() {
+    echo -e "${YELLOW}$1${RESET} $2"
+}
 
-# Pre-flight checks
-print_section "Pre-flight Checks"
-check_command sudo
-echo "✓ Prerequisites met"
+# Function to safely link a configuration directory from dotfiles directory
+# @1 source path
+# @2 target path
+link_directory() {
+    # The source directory
+    local source="$1"
+    # The destination link
+    local destination="$2"
+    # The backup directory
+    local backup_directory="${XDG_STATE_HOME}/dotfiles_backup"
 
-# ===================================
-# System Updates
-# ===================================
+    # Check if anything exists at the destination path
+    if [ -e "$destination" ] || [ -L "$destination" ]; then
+        # Check if that existing directory is specifically a symbolic link
+        if [ -L "$destination" ]; then
+            # Resolve where the existing symlink points to
+            local current_target
+            current_target=$(readlink "$destination")
 
-print_section "Updating the System"
-sudo dnf upgrade --refresh -y
+            # Idempotency Check: Does it already point to our dotfiles?
+            if [ "$current_target" = "$source" ]; then
+                log_warn "[Skipping]:" "$destination is already correctly linked."
+                return 0
+            else
+                log_error "[Error]:" "$destination is a symlink, but points to '$current_target' instead of '$source'."
+                # Exit for now. Update in the future to create a backup
+                # directory to add directory instead of exiting.
+                return 1
+            fi
+        else
+            # Make sure the dotfiles backup directory exists
+            mkdir -p "$backup_directory"
+            local full_backup_path="${backup_directory}/${destination##*/}_$(date +%Y%m%d_%H%M%S)"
+            # It's a real directory, so create a backup
+            log_warn "[Backup]:" "Directory already exists at $destination... Creating a backup at $full_backup_path"
+            mv "$destination" "$full_backup_path"
+        fi
+    fi
 
-# ===================================
-# Install Dependencies & Core Tools
-# ===================================
+    # If the destination doesn't exist at all, create the link safely
+    log_info "[Linking]:" "$destination -> $source"
+    # Ensure the parent directory exists (e.g., ~/.config/app/)
+    mkdir -p "$(dirname "$destination")"
+    ln -s "$source" "$destination"
+}
 
-print_section "Installing Dependencies"
-if [ "$USE_WAYLAND" == 'y' ]; then
-  echo -e "\nInstalling Sway"
-  sudo dnf install -y sway swaybg swaylock waybar wofi wl-clipboard
-elif [ "$USE_WAYLAND" == 'n' ]; then
-  echo -e "\nInstalling i3wm"
-  sudo dnf install -y xorg-x11-server-Xorg xorg-x11-xinit i3 polybar i3lock rofi feh xclip
-else
-  echo -e "\nInvalid option... terminating"
-  exit 1
-fi
+# Function to install any upgrade and core tools
+update_system() {
+    log_info "[Bootstrap]:" "Updating the system"
 
-# Install Fedora development tools group and essential compilation libraries
-sudo dnf install -y @development-tools
+    sudo dnf upgrade --refresh -y
 
-# ===================================
-# Install Applications via DNF
-# ===================================
+    if [[ $USE_WAYLAND == 'y' ]]; then
+        log_info "[Installing]:" "Sway suite"
+        sudo dnf install -y sway swaybg swaylock waybar wofi wl-clipboard
+    else
+        log_info "[Installing]:" "i3 suite"
+        sudo dnf install -y xorg-x11-server-Xorg xorg-x11-xinit i3 polybar i3lock rofi feh xclip
+    fi
 
-print_section "Installing Applications via DNF"
-sudo dnf install -y \
-	zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
-  brightnessctl alacritty neovim btop fzf lightdm \
-  lightdm-gtk-greeter dunst
+    log_info "[Installing]:" "Applications"
 
-# install power-profiles-daemon and remove conflicting packages(tuned)
-sudo dnf install -y --allowerasing power-profiles-daemon
+    sudo dnf install -y @development-tools unzip \
+        zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
+        brightnessctl alacritty neovim btop fzf \
+        dunst shfmt shellcheck
 
-# ===================================
-# Download dotfiles
-# ===================================
-#
-print_section "Downloading dotfiles"
+    # Remove tuned in favor of power-profiles-daemon
+    sudo dnf install -y --allowerasing power-profiles-daemon
+}
 
-if ([ ! -d "$XDG_CONFIG_HOME/wofi" ] && [ "$USE_WAYLAND" == 'y' ]) ||
-   ([ ! -d "$XDG_CONFIG_HOME/rofi" ] && [ "$USE_WAYLAND" == 'n' ]); then
-  # Ensure target directory exists
-  mkdir -p "$XDG_CONFIG_HOME"
+# Configure dotfiles
+configure_dotfiles() {
+    if [ ! -d "${PROJECTS_DIR}/dotfiles" ]; then
+        log_info "[Bootstrap]:" "Dotfiles configuration"
 
-  # Clean up any lingering partial clones before cloning
-  rm -rf /tmp/dotfiles
-  git clone https://github.com/ben-garcia/dotfiles /tmp/dotfiles
+        wayland_only_apps=("sway" "waybar" "wofi")
+        x11_only_apps=("i3" "polybar" "rofi")
 
-  if [ -d "/tmp/dotfiles/config" ]; then
-   pushd /tmp/dotfiles/config > /dev/null
+        # Make sure the config folder exists
+        mkdir -p "$XDG_CONFIG_HOME"
+        # Clone the repo to the Projects directory
+        git clone "$DOTFILES_URL" "${PROJECTS_DIR}/dotfiles"
+        cd "${DOTFILES_DIR}/config"
 
-   # Use dotglob so wilcards capture hidden assets gracefully
-   shopt -s dotglob
+        # Loop through the dotfiles config directory
+        for directory in *; do
+            if { [ "$USE_WAYLAND" == "y" ] && [[ " ${x11_only_apps[*]} " =~ " ${directory} " ]]; } ||
+               { [ "$USE_WAYLAND" == "n" ] && [[ " ${wayland_only_apps[*]} " =~ " ${directory} " ]]; }; then
+                # Ignore wayland apps on an x11 system and
+                # ignore x11 apps on a wayland system
+                continue
+            fi
 
-   echo "Syncing configuration files to $XDG_CONFIG_HOME..."
-   # -a preserves attributes (permissions/timestamps), -r copies recursively
-   # This safely merges files into existing directories without wiping them out
-   cp -ar * "$XDG_CONFIG_HOME/"
+            link_directory "${DOTFILES_DIR}/config/$directory" "${XDG_CONFIG_HOME}/$directory"
+        done
 
-   shopt -u dotglob
-   popd > /dev/null
-  else
-    echo "Error: 'config' directory not found in the cloned repository." >&2
-    exit 1
-  fi
+        # Configure dotfiles scripts
+        user_scripts_directory="$HOME/.local/bin"
+        scripts_directory="${DOTFILES_DIR}/scripts"
 
-  # Remove uneccessary configuration files
-  # When setting up dotfiles, all files are copied to .config directory
-  if [ "$USE_WAYLAND" == 'y' ]; then
-    # remove x11 specific files
-    rm -rf $XDG_CONFIG_HOME/i3 $XDG_CONFIG_HOME/polybar $XDG_CONFIG_HOME/rofi
-  else
-    # remove wayland specific files
-    rm -rf $XDG_CONFIG_HOME/sway $XDG_CONFIG_HOME/waybar $XDG_CONFIG_HOME/wofi
-  fi
-  
-  if [ -f "$XDG_CONFIG_HOME/wofi/power-menu.sh" ]; then
-    chmod +x "$XDG_CONFIG_HOME/wofi/power-menu.sh"
-  elif [ -f "$XDG_CONFIG_HOME/rofi/power-menu.sh" ]; then
-    chmod +x "$XDG_CONFIG_HOME/rofi/power-menu.sh"
-  fi
-  
-  echo "✓ Dotfiles downloaded successfully deplayed"
-else
-  echo "✓ Dotfiles already setup"
-fi
+        log_info "[Configuring]:" "Dotfiles scripts"
 
-# ===================================
-# Configure Display Server
-# ===================================
+        mkdir -p "$user_scripts_directory"
+        cd "$scripts_directory"
 
-if [ "$USE_WAYLAND" == 'y' ]; then
-  print_section "Configuring Sway"
+        for script in *; do
+            if [[ ! -x "${user_scripts_directory}/${script}" ]]; then
+                # Remove the .sh extension (e.g. power-menu.sh -> power-menu)
+                binary="${user_scripts_directory}/${script%%.*}"
 
-  # Ensure the profile file exists
-  mkdir -p "$XDG_CONFIG_HOME/zsh"
-  touch "$XDG_CONFIG_HOME/zsh/.zprofile"
+                log_info "[Linking]:" "${binary} -> ${scripts_directory}/${script}"
+                chmod +x "$script"
+                ln -s "${scripts_directory}/${script}" "$binary"
+            else
+                log_warn "[Skipping]:" "${scripts_directory}/${script} is already correctly linked."
+            fi
+        done
 
-  # Configure automatic TTY invocation for Sway (Clean, native Wayland practice)
-  if ! grep -q "exec sway" "$XDG_CONFIG_HOME/zsh/.zprofile"; then
-    cat << 'EOF' >> "$XDG_CONFIG_HOME/zsh/.zprofile"
+        log_info "✓ Dotfiles successfully configured" ""
+    else
+        cd "${PROJECTS_DIR}/dotfiles"
+        git pull
+        log_warn "Dotfiles already configured... Pulled the latest changes" ""
+    fi
+}
 
-# If running from tty1, automatically launch Sway
-if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+configure_session() {
+    mkdir -p "$XDG_CONFIG_HOME/zsh"
+    touch "$XDG_CONFIG_HOME/zsh/.zprofile"
+
+    ZPROFILE="$XDG_CONFIG_HOME/zsh/.zprofile"
+
+    if [[ $USE_WAYLAND == "y" ]]; then
+        log_info "[Configuring]:" "Sway"
+        if ! grep -q "exec sway" "$ZPROFILE"; then
+            cat << 'EOF' >> "$ZPROFILE"
+# Auto-launch Sway on TTY1
+if [[ -z $DISPLAY && "$(tty)" == "/dev/tty1" ]]; then
   exec sway
 fi
 EOF
-    echo "✓ Sway configured to auto-start securely on TTY1 login"
-  else
-    echo "✓ Sway already configured in .zprofile"
-  fi
-else
-  print_section "Configuring i3"
-
-  echo "exec i3" > $HOME/.xinitrc
-
-  # Ensure the profile file exists
-  mkdir -p "$XDG_CONFIG_HOME/zsh"
-  touch "$XDG_CONFIG_HOME/zsh/.zprofile"
-
-  # Configure automatic TTY invocation for i3
-  if ! grep -q "exec i3" "$XDG_CONFIG_HOME/zsh/.zprofile"; then
-    cat << 'EOF' >> "$XDG_CONFIG_HOME/zsh/.zprofile"
-
-# If running from tty1, automatically launch i3 via startx
-if [ -z "${DISPLAY}" ] && [ "${XDG_VTNR}" -eq 1 ]; then
+            log_info "[Configured]:" "Sway set to auto-start on TTY1 login"
+        fi
+    else
+        log_info "[Configuring]:" "i3"
+        if ! grep -q "exec startx" "$ZPROFILE"; then
+            cat << 'EOF' >> "$ZPROFILE"
+# Auto-launch i3 via startx on TTY1
+if [[ -z $DISPLAY && "$(tty)" == "/dev/tty1" ]]; then
   exec startx
 fi
 EOF
-    sudo systemctl enable lightdm.service -f
-    echo "✓ i3 configured to auto-start securely on TTY1 login"
-  else
-    echo "✓ i3 already configured in .zprofile"
-  fi
-fi
- 
-# ===================================
-# Configure Zsh
-# ===================================
+            log_info "[Contifured]:" "i3 set to auto-start on TTY1 login" ""
+        fi
+    fi
+}
 
-# 1. Always ensure your user's shell is set to Zsh safely
-TARGET_SHELL="/usr/bin/zsh"
+configure_zsh() {
+    TARGET_SHELL="/usr/bin/zsh"
+    if [[ $SHELL != "$TARGET_SHELL" ]]; then
+        log_info "[Configuring]:" "Changing Default Shell to Zsh"
+        if grep -q "^$TARGET_SHELL$" /etc/shells; then
+            sudo chsh -s "$TARGET_SHELL" "$USER"
+            log_info "✓ Default shell changed to Zsh for $USER" ""
+        else
+            log_error "[Error]:" "Zsh not found in /etc/shells. Skipping shell change."
+        fi
+    fi
 
-if [ "$SHELL" != "$TARGET_SHELL" ]; then
-  print_section "Changing Default Shell to Zsh"
-  
-  # Double-check that our target path is actually valid and registered
-  if grep -q "^$TARGET_SHELL$" /etc/shells; then
-    sudo chsh -s "$TARGET_SHELL" "$USER"
-    echo "✓ Default shell changed to Zsh for $USER"
-  else
-    echo "Error: Zsh is installed but not found in /etc/shells. Skipping shell change." >&2
-  fi
-fi
+    if ! grep -q "ZDOTDIR" /etc/zshenv 2> /dev/null; then
+        log_info "[Configuring]:"  "Zsh Environment"
+        mkdir -p "$XDG_STATE_HOME/zsh"
+        touch "$XDG_STATE_HOME/zsh/zsh_history"
 
-# 2. Configure system-wide ZDOTDIR if not already done
-if ! grep -q "ZDOTDIR" /etc/zsh/zshenv 2>/dev/null; then
-  print_section "Configuring Zsh Environment"
+        echo "export ZDOTDIR=\$HOME/.config/zsh" | sudo tee -a /etc/zshenv > /dev/null
 
-  mkdir -p "$XDG_STATE_HOME/zsh"
-  touch "$XDG_STATE_HOME/zsh/zsh_history"
+        # Clone plugins cleanly
+        declare -A plugins=(
+               ["zsh-vi-mode"]="https://github.com/jeffreytse/zsh-vi-mode.git"
+               ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
+               ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
+               ["fzf-tab"]="https://github.com/Aloxaf/fzf-tab.git"
+        )
 
-  # Add ZDOTDIR to zshenv
-  echo "export ZDOTDIR=$HOME/.config/zsh" | sudo tee -a /etc/zshenv > /dev/null
+        for plugin in "${!plugins[@]}"; do
+            dest="$XDG_DATA_HOME/zsh/plugins/$plugin"
+            if [[ ! -d "$dest" ]]; then
+                git clone "${plugins[$plugin]}" "$dest" 2> /dev/null || true
+            fi
+        done
+        log_info "✓ Zsh configured and plugins installed" ""
+    fi
+}
 
-  # Install zsh plugins
-  git clone https://github.com/jeffreytse/zsh-vi-mode.git \
-    "$XDG_DATA_HOME/zsh/plugins/zsh-vi-mode" 2>/dev/null || true
-  git clone https://github.com/zsh-users/zsh-autosuggestions.git \
-    "$XDG_DATA_HOME/zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
-  git clone https://github.com/zsh-users/zsh-syntax-highlighting.git \
-    "$XDG_DATA_HOME/zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
-  git clone https://github.com/Aloxaf/fzf-tab.git \
-    "$XDG_DATA_HOME/zsh/plugins/fzf-tab" 2>/dev/null || true
+configura_nerdfont() {
+    if [[ ! -d "/usr/share/fonts/jetbrains-mono" ]]; then
+        log_info "[Installing]:" "JetBrains Mono Nerd Font"
+        sudo mkdir -p /usr/share/fonts/jetbrains-mono
 
-  echo "✓ Zsh configured and plugins installed"
-else
-  echo "✓ Zsh plugins and ZDOTDIR environment already configured"
-fi
+        # Download and unzip directly using absolute targeting paths
+        sudo curl -fLo "/usr/share/fonts/jetbrains-mono/JetBrainsMono.zip" \
+            "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip"
 
-# ===================================
-# Install JetBrains Mono Nerd Font
-# ===================================
+        sudo unzip -o "/usr/share/fonts/jetbrains-mono/JetBrainsMono.zip" -d /usr/share/fonts/jetbrains-mono/
+        sudo rm "/usr/share/fonts/jetbrains-mono/JetBrainsMono.zip"
+        sudo fc-cache -fv
+        log_info "✓ JetBrains Mono Nerd Font installed" ""
+    fi
+}
 
-if [ ! -d "/usr/share/fonts/jetbrains-mono" ]; then
-  print_section "Installing JetBrains Mono Nerd Font"
+configure_nvm() {
+    # Attempt source load
+    [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
 
-  # Fedora prefers global manual fonts inside /usr/share/fonts/ or ~/.local/share/fonts/
-  sudo mkdir -p /usr/share/fonts/jetbrains-mono
-  pushd /usr/share/fonts/jetbrains-mono > /dev/null
-  sudo curl -fLo "JetBrainsMonoNerdFont.zip" \
-    https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/JetBrainsMono.zip
-  sudo unzip -o "JetBrainsMonoNerdFont.zip"
-  sudo rm "JetBrainsMonoNerdFont.zip"
-  sudo fc-cache -fv
-  popd > /dev/null
+    if ! command -v nvm &> /dev/null; then
+        log_info "[Installing]:" "NVM and Node"
+        mkdir -p "$XDG_DATA_HOME/nvm"
+        curl -q -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash
 
-  echo "✓ JetBrains Mono Nerd Font installed"
-else
-  echo "✓ JetBrains Mono Nerd Font already installed"
-fi
+        # Reload NVM explicitly
+        [[ -s "$NVM_DIR/nvm.sh" ]] && \. "$NVM_DIR/nvm.sh"
 
-# ===================================
-# Install NVM
-# ===================================
+        set +u
+        nvm install --lts
+        nvm alias default 'lts/*'
+        set -u
+        log_info "✓ NVM and Node LTS installed" ""
+    fi
 
-# source nvm
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    log_info "[Installing]:" "Language Servers..."
 
-if ! command -v nvm &> /dev/null; then
-  print_section "Installing NVM"
+    NODE_BIN_DIR=$(find "$NVM_DIR/versions/node" -maxdepth 2 -type d -name "bin" 2>/dev/null | head -n 1)
 
-  mkdir -p "$XDG_DATA_HOME/nvm"
-  sudo chown -R "$USER:$USER" "$XDG_DATA_HOME/nvm"
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    if [[ -z $NODE_BIN_DIR || ! -f "$NODE_BIN_DIR/npm" ]]; then
+        log_error "[Error]:" "Could not locate local NVM npm binary."
+        exit 1
+    fi
 
-  # Load NVM into the current script process immediately
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    ORIGINAL_PATH="$PATH"
+    export PATH="$NODE_BIN_DIR:$PATH"
 
-  # Temporarily drop strictness to let NVM install Node safely
-  set +u
-  echo "Downloading and installing Node LTS via NVM..."
-  nvm install --lts
-  nvm alias default 'lts/*'
-  set -u
+    servers=("bash-language-server" "stylelint-lsp" "typescript-language-server" "vscode-langservers-extracted")
+    for server in "${servers[@]}"; do
+        if ! npm list -g "$server" &> /dev/null; then
+            npm install -g "$server"
+            log_info "✓ $server installed" ""
+        else
+            log_warn "✓ $server is already installed" ""
+        fi
+    done
 
-  echo "✓ NVM installed"
-else
-  echo "✓ NVM already installed"
-fi
+    export PATH="$ORIGINAL_PATH"
+}
 
-if ! command -v npm &> /dev/null; then
-  print_section "Installing Npm(LTS)"
-  nvm install --lts
-  echo "✓ Npm installed(LTS)"
-else
-  echo "✓ Npm already installed"
-fi
+configure_git() {
+    if [[ ! -d "$HOME/.ssh" ]]; then
+        log_info "[Configuring]:" "Git & SSH Keys"
+        mkdir -p "$XDG_CONFIG_HOME/git"
+        git config --global user.name "$USER"
+        git config --global user.email "$GITHUB_EMAIL"
+        ssh-keygen -t ed25519 -C "$GITHUB_EMAIL" -f "$HOME/.ssh/id_ed25519" -N "" || true
 
-# ===================================
-# Install Language Servers
-# ===================================
+        log_info "✓" "Github configured successfully"
+        log_warn "[IMPORTANT]:" "GitHub authentication still requires manual setup:"
+        log_warn "  1." "Run: gh auth login"
+        log_warn "  2." "Run: gh ssh-key add $HOME/.ssh/id_ed25519.pub --type signing"
+        log_warn "  3." "Test: ssh -T git@github.com"
+    fi
+}
 
-print_section "Installing Language Servers"
-
-export NVM_DIR="$XDG_DATA_HOME/nvm"
-
-# 1. Freshly install NVM & Node LTS if NVM directory doesn't exist or is empty
-if [ ! -d "$NVM_DIR/versions/node" ] || [ -z "$(ls -A "$NVM_DIR/versions/node" 2>/dev/null)" ]; then
-  echo "NVM or Node LTS not found. Redownloading cleanly..."
-  rm -rf "$NVM_DIR"
-  mkdir -p "$NVM_DIR"
-  
-  # Run installer without profile injection to keep it clean
-  curl -q -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash
-  
-  # Force an explicit LTS installation using a clean subshell environment
-  set +u
-  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-  nvm install --lts
-  set -u
-fi
-
-# 2. Extract the exact binary path to NVM's Node execution folder
-# This bypasses the need for 'nvm use' or shell functions entirely!
-NODE_BIN_DIR=$(find "$NVM_DIR/versions/node" -maxdepth 2 -type d -name "bin" | head -n 1)
-
-if [ -z "$NODE_BIN_DIR" ] || [ ! -f "$NODE_BIN_DIR/npm" ]; then
-  echo "Error: Could not locate local NVM npm binary." >&2
-  exit 1
-fi
-
-echo "Forcing script to use NVM binary path: $NODE_BIN_DIR"
-
-# 3. Temporarily prepend NVM's local Node directory to the script's PATH
-# This ensures that standard 'npm' commands run from your local user profile safely
-ORIGINAL_PATH="$PATH"
-export PATH="$NODE_BIN_DIR:$PATH"
-
-servers=("stylelint-lsp" "typescript-language-server")
-for server in "${servers[@]}"
-do
-  if ! "$NODE_BIN_DIR/npm" list -g "$server" &> /dev/null; then
-    npm install -g "$server"
-    echo "✓ $server installed"
-  else
-    echo "✓ $server is already installed"
-  fi
-done
-
-if ! "$NODE_BIN_DIR/npm" list -g vscode-langservers-extracted &> /dev/null; then
-  npm install -g vscode-langservers-extracted
-  echo "✓ vscode-langservers installed"
-else
-  echo "✓ vscode-langservers already installed"
-fi
-
-# Restore original path setup safely
-export PATH="$ORIGINAL_PATH"
-
-# ===================================
-# Configure Git
-# ===================================
-
-if [ ! -d $HOME/.ssh ]; then
-  print_section "Configuring Git"
-
-  mkdir -p "$XDG_CONFIG_HOME/git"
-  touch "$XDG_CONFIG_HOME/git/config"
-
-  # Configure git user
-  git config --global user.name "$USER"
-  git config --global user.email "$GITHUB_EMAIL"
-
-  # Generate SSH key
-  ssh-keygen -t ed25519 -C "$GITHUB_EMAIL" -f "$HOME/.ssh/id_ed25519" -N "" || true
-
-  echo "✓ Git configured"
-  echo ""
-  echo "IMPORTANT: GitHub authentication still requires manual setup:"
-  echo "  1. Run: gh auth login"
-  echo "  2. Run: gh ssh-key add $HOME/.ssh/id_ed25519.pub --type signing"
-  echo "  3. Test: ssh -T git@github.com"
-else
-  echo "✓ Git already configured"
-fi
-
-# ===================================
-# Configure and Brightnessctl
-# ===================================
-
-print_section "Configuring Brightnessctl"
-
-# Brightnessctl (group assignment remains valid on Fedora)
+configure_hardware_and_daemons() {
+log_info "[Configuring]:" "Hardware & Daemons..."
 if command -v brightnessctl &> /dev/null; then
-  sudo usermod -aG video "$USER"
-  echo "✓ Brightnessctl configured"
-else
-  echo "✓ Brightnessctl not available"
+    sudo usermod -aG video "$USER"
 fi
 
-# ===================================
-# Configure daemons 
-# ===================================
-
-print_section "Configuring Daemons"
-
-# 'if' statement naturally intercepts the exit code, preventing 'set -e' from crashing
 if ! sudo systemctl is-active --quiet power-profiles-daemon; then
-  sudo systemctl enable --now power-profiles-daemon
-  echo "✓ power-profiles-daemon configured"
-else
-  echo "✓ power-profiles-daemon is already running"
+    sudo systemctl enable --now power-profiles-daemon
 fi
+}
 
-# ===================================
-# Download a wallpaper
-# ===================================
+download_assets() {
+    # Download Wallpaper
+    mkdir -p "$HOME/Pictures"
+    if [[ ! -f "$HOME/Pictures/wallpaper.jpg" ]]; then
+        curl -L -o "$HOME/Pictures/wallpaper.jpg" "https://unsplash.com/photos/u27Rrbs9Dwc/download?force=true&w=1920" || echo "Warning: Wallpaper failed"
+        log_info "[Dowloaded]:" "Wallpapper to $HOME/Pictures/wallpaper.jpg"
+    else
+        log_warn "[Skipping]:" "Wallpapper... $HOME/Pictures/wallpaper.jpg detected"
+    fi
 
-if [ ! -f $HOME/Pictures/wallpaper.jpg ]; then
-  mkdir -p $HOME/Pictures
-  curl -L -o $HOME/Pictures/wallpaper.jpg "http://s1.picswalls.com/wallpapers/2014/02/19/moon-background_111723746_31.jpg" || echo "Warning: Wallpaper download failed"
-  echo "✓ Downloaded default wallpaper"
-else
-  echo "✓ Wallpaper detected"
-fi 
+    # Download Screensaver
+    if [[ ! -f "$HOME/Pictures/screensaver.png" ]]; then
+        curl -L -o "$HOME/Pictures/screensaver.png" "https://images2.alphacoders.com/109/1098024.png" || echo "Warning: Screensaver failed"
+        log_info "[Dowloaded]:" "Screensaver to $HOME/Pictures/wallpaper.jpg"
+    else
+        log_warn "[Skipping]:" "Screensaver... $HOME/Pictures/screensaver.png detected"
+    fi
+}
 
-# ===================================
-# Download a screensaver
-# ===================================
+# Function that detects display environment
+detect_display_enviroment() {
+    if command -v i3 > /dev/null 2>&1 && ! command -v sway > /dev/null 2>&1; then
+        USE_WAYLAND="n"
+    elif command -v sway > /dev/null 2>&1 && ! command -v i3 > /dev/null 2>&1; then
+        USE_WAYLAND="y"
+    else
+        while true; do
+            read -r -p "Do you want to use Wayland with Sway? \(if no, use X11 with i3\) \(y/n\): " temp_input
+            case "-$temp_input" in
+                -[Yy]*)
+                    USE_WAYLAND="y"
+                    break
+                ;;
+                -[Nn]*)
+                    USE_WAYLAND="n"
+                    break
+                ;;
+                *) echo "Please answer y or n." ;;
+            esac
+        done
+    fi
+}
 
-if [ ! -f $HOME/Pictures/screensaver.png ]; then
-  mkdir -p $HOME/Pictures
-  curl -L -o $HOME/Pictures/screensaver.png "https://images2.alphacoders.com/109/1098024.png" || echo "Warning: Screensaver download failed"
-  echo "✓ Downloaded default screensaver"
-else
-  echo "✓ Screensaver detected"
-fi 
 
-# ===================================
-# Installation Complete
-# ===================================
+main() {
+    detect_display_enviroment
+    update_system
+    configure_dotfiles
+    configure_session
+    configure_zsh
+    configura_nerdfont
+    configure_nvm
+    configure_git
+    configure_hardware_and_daemons
+    download_assets
 
-print_section "Installation Complete"
-echo ""
-echo "Setup log saved to: $LOG_FILE"
-echo ""
-echo "Next steps:"
-echo "  1. Manually complete GitHub authentication (see above)"
-echo "  2. Manually change desktop environment  (see above)"
-echo "  3. Log out and back in for group changes to take effect"
-echo "  4. Configure your shell and text editor as needed"
-echo ""
+    log_info "✓ Setup log saved to: $LOG_FILE" ""
+    log_info "✓ Installation Complete" ""
+    log_warn "Next steps:" ""
+    log_warn "  1. Manually complete GitHub authentication (see instructions above)" ""
+    log_warn "  2. Reboot or log out, then log into TTY1 to auto-launch Sway/i3." ""
+}
+
+main
