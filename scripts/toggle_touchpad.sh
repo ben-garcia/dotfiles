@@ -2,13 +2,19 @@
 #
 # This script toggles the trackpad.
 
+# Exit if Wayland is detected
+if [ ! -n "$WAYLAND_DISPLAY" ]; then
+  notify-send "Trackpad script error" "Wayland is not supported yet" -u urgent
+  exit 1
+fi
+
 # stores both the name and id of the trackpad device
 relevant_info=$(xinput list | sed -n -E 's/\W+(.*Touchpad).*id=([0-9]*).*/\2$\1/p')
 
 if [ ${#relevant_info} -eq 0 ]; then
   # no touchpad device was found, which can indicate the machine is not a laptop.
   # program will terminate.
-  # notify me about this before terminating 
+  # notify me about this before terminating
   notify-send 'Trackpad Status' 'Failed to detect a touchpad device.' -u normal
   exit 1
 fi
