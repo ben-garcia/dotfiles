@@ -90,7 +90,9 @@ bindsym $mod+Shift+r restart
 # exit i3 (logs you out of your X session)
 bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -b 'Yes, exit i3' 'i3-msg exit'"
 # launch power menu
-bindsym $mod+Shift+p exec --no-startup-id ~/.config/rofi/power-menu.sh
+bindsym $mod+Shift+p exec --no-startup-id power-menu
+# launch power profiles menu
+bindsym $mod+Shift+n exec --no-startup-id power-profiles
 
 # active resize mode
 bindsym $mod+r mode "$mode_resize"
@@ -148,7 +150,7 @@ bindsym XF86MonBrightnessUp exec brightnessctl set +20
 bindsym XF86MonBrightnessDown exec brightnessctl set 20-
 
 # toggle touchpad
-bindsym XF86TouchpadToggle exec $HOME/.config/i3/scripts/toggle_touchpad.sh
+bindsym XF86TouchpadToggle exec toggle-touchpad
 
 # lock the system
 bindsym XF86ScreenSaver exec i3lock -u -e -f -i $HOME/Pictures/screensaver.png

@@ -85,16 +85,15 @@ bindsym $mod+Shift+0 move container to workspace 10
 
 # reload the configuration file
 bindsym $mod+Shift+c reload
-
 # exit sway (logs you out of your Wayland session)
 bindsym $mod+Shift+e exec "swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -b 'Yes, exit sway' 'swaymsg exit'"
-
-# launch power menu (Make sure to update your script to use wofi if needed!)
-bindsym $mod+Shift+p exec ~/.config/wofi/power-menu.sh
+# launch power menu
+bindsym $mod+Shift+p exec power-menu
+# launch power profiles menu
+bindsym $mod+Shift+n exec --no-startup-id power-profiles
 
 # active resize mode
 bindsym $mod+r mode "resize"
-
 # resize window (you can also use the mouse for that)
 mode "resize" {
     # Pressing left will shrink the window’s width.
@@ -113,7 +112,6 @@ mode "resize" {
 
 # active launcher mode
 bindsym $mod+o mode "launcher"
-
 mode "launcher" {
     bindsym f exec firefox
     bindsym l exec librewolf
@@ -154,7 +152,7 @@ bindsym XF86MonBrightnessUp exec brightnessctl set +20
 bindsym XF86MonBrightnessDown exec brightnessctl set 20-
 
 # toggle touchpad (Note: You may need to look into `swaymsg input` for a native Wayland solution)
-bindsym XF86TouchpadToggle exec $HOME/.config/sway/scripts/toggle_touchpad.sh
+bindsym XF86TouchpadToggle exec toggle-touchpad
 
 # lock the system
 bindsym XF86ScreenSaver exec swaylock -i $HOME/Pictures/screensaver.png
