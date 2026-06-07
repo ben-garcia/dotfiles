@@ -25,7 +25,7 @@ export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 export NVM_DIR="$XDG_DATA_HOME/nvm"
 
-LOG_FILE="/tmp/fedora_setup_$(date +%Y%m%d_%H%M%S).log"
+LOG_FILE="/tmp/bootstrap_$(date +%Y%m%d_%H%M%S).log"
 exec > >(tee -a "$LOG_FILE")
 exec 2>&1
 
@@ -51,13 +51,12 @@ log_warn() {
 }
 
 # Function to safely link a configuration directory from dotfiles directory
-# @1 source path
-# @2 target path
+# @1 app directory
 link_directory() {
     # The source directory
-    local source="$1"
+    local source="${DOTFILES_DIR}/config/$directory"
     # The destination link
-    local destination="$2"
+    local destination="${XDG_CONFIG_HOME}/$directory"
     # The backup directory
     local backup_directory="${XDG_STATE_HOME}/dotfiles_backup"
 
@@ -96,29 +95,91 @@ link_directory() {
     ln -s "$source" "$destination"
 }
 
+detect_distro() {
+    local distro
+    distro=$(grep "^ID=" /etc/os-release | cut -d= -f2)
+
+    case "$distro" in
+        "fedora" | "arch")
+            log_info "[Detected]:" "${distro}"
+            DISTRO="$distro"
+         ;;
+        *)
+            log_error "[Error]:" "Unsupported distro detected: ${distro}"
+            exit 1
+        ;;
+    esac
+}
+
+# Function that detects display environment
+detect_display_enviroment() {
+    if command -v i3 > /dev/null 2>&1 && ! command -v sway > /dev/null 2>&1 && [[ "$DISTRO" == "fedora" ]]; then
+        USE_WAYLAND="n"
+    elif command -v sway > /dev/null 2>&1 && ! command -v i3 > /dev/null 2>&1 && [[ "$DISTRO" == "fedora" ]]; then
+        USE_WAYLAND="y"
+    else
+        while true; do
+            read -r -p "Do you want to use Wayland with Sway? (if no, use X11 with i3) (y/n): " temp_input
+            case "-$temp_input" in
+                -[Yy]*)
+                    USE_WAYLAND="y"
+                    break
+                ;;
+                -[Nn]*)
+                    USE_WAYLAND="n"
+                    break
+                ;;
+                *) echo "Please answer y or n." ;;
+            esac
+        done
+    fi
+}
+
 # Function to install any upgrade and core tools
 update_system() {
     log_info "[Bootstrap]:" "Updating the system"
 
-    sudo dnf upgrade --refresh -y
+    local package_manager
+
+    if [[ "$DISTRO" == "fedora" ]]; then
+        sudo dnf upgrade --refresh -y
+        package_manager="sudo dnf install -y"
+    else
+        sudo pacman -Syu --noconfirm
+        package_manager="sudo pacman -S --needed --noconfirm"
+    fi
+
 
     if [[ $USE_WAYLAND == 'y' ]]; then
         log_info "[Installing]:" "Sway suite"
-        sudo dnf install -y sway swaybg swaylock waybar wofi wl-clipboard
+        $package_manager sway swaybg swaylock waybar wofi wl-clipboard
     else
         log_info "[Installing]:" "i3 suite"
-        sudo dnf install -y xorg-x11-server-Xorg xorg-x11-xinit i3 polybar i3lock rofi feh xclip
+        $package_manager i3 polybar i3lock rofi feh xclip
+    fi
+
+    if [[ "$DISTRO" == "fedora" && "$USE_WAYLAND" == "n" ]]; then
+        $package_manager xorg-x11-server-Xorg xorg-x11-xinit
+    elif [[ "$DISTRO" == "arch" && "$USE_WAYLAND" == "n" ]]; then
+        $package_manager xorg-server xorg-xinit
     fi
 
     log_info "[Installing]:" "Applications"
 
-    sudo dnf install -y @development-tools unzip \
-        zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
-        brightnessctl alacritty neovim btop fzf \
-        dunst shfmt shellcheck
-
-    # Remove tuned in favor of power-profiles-daemon
-    sudo dnf install -y --allowerasing power-profiles-daemon
+    if [[ "$DISTRO" == "fedora" ]]; then
+        $package_manager @development-tools git unzip \
+            zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
+            brightnessctl alacritty neovim btop fzf \
+            dunst shfmt shellcheck
+        # Remove tuned in favor of power-profiles-daemon
+        $package_manager --allowerasing power-profiles-daemon python-gobject
+    else
+        $package_manager \
+            base-devel git unzip curl pipewire pipewire-pulse wireplumber \
+            zsh bat fd ripgrep tree github-cli ranger brightnessctl \
+            alacritty neovim btop fzf ttf-jetbrains-mono-nerd openssh \
+            firefox dunst power-profiles-daemon libnotify shfmt shellcheck
+    fi
 }
 
 # Configure dotfiles
@@ -144,7 +205,8 @@ configure_dotfiles() {
                 continue
             fi
 
-            link_directory "${DOTFILES_DIR}/config/$directory" "${XDG_CONFIG_HOME}/$directory"
+            # link_directory "${DOTFILES_DIR}/config/$directory" "${XDG_CONFIG_HOME}/$directory"
+            link_directory "$directory"
         done
 
         # Configure dotfiles scripts
@@ -181,71 +243,93 @@ configure_session() {
     mkdir -p "$XDG_CONFIG_HOME/zsh"
     touch "$XDG_CONFIG_HOME/zsh/.zprofile"
 
-    ZPROFILE="$XDG_CONFIG_HOME/zsh/.zprofile"
+    local zprofile_path="$XDG_CONFIG_HOME/zsh/.zprofile"
 
     if [[ $USE_WAYLAND == "y" ]]; then
         log_info "[Configuring]:" "Sway"
-        if ! grep -q "exec sway" "$ZPROFILE"; then
-            cat << 'EOF' >> "$ZPROFILE"
-# Auto-launch Sway on TTY1
+        if ! grep -q "exec sway" "$zprofile_path"; then
+            cat << 'EOF' >> "$zprofile_path"
+# Auto-launch Sway on login
 if [[ -z $DISPLAY && "$(tty)" == "/dev/tty1" ]]; then
   exec sway
 fi
 EOF
-            log_info "[Configured]:" "Sway set to auto-start on TTY1 login"
+            log_info "[Configured]:" "Sway set to auto-start on login"
         fi
     else
         log_info "[Configuring]:" "i3"
-        if ! grep -q "exec startx" "$ZPROFILE"; then
-            cat << 'EOF' >> "$ZPROFILE"
-# Auto-launch i3 via startx on TTY1
+
+        if [[ "$DISTRO" == "arch" ]]; then
+            echo "exec i3" > $HOME/.xinitrc
+
+            # Ensure the profile file exists
+            mkdir -p "$XDG_CONFIG_HOME/zsh"
+            touch "$XDG_CONFIG_HOME/zsh/.zprofile"
+        fi
+
+        if ! grep -q "exec startx" "$zprofile_path"; then
+            cat << 'EOF' >> "$zprofile_path"
+# Auto-launch i3 via startx on login
 if [[ -z $DISPLAY && "$(tty)" == "/dev/tty1" ]]; then
   exec startx
 fi
 EOF
-            log_info "[Contifured]:" "i3 set to auto-start on TTY1 login" ""
+            log_info "[Configured]:" "i3 set to auto-start on login"
         fi
     fi
 }
 
 configure_zsh() {
-    TARGET_SHELL="/usr/bin/zsh"
-    if [[ $SHELL != "$TARGET_SHELL" ]]; then
+    local target_shell="/usr/bin/zsh"
+    local zsh_system_directory
+
+    if [[ "$DISTRO" == "fedora" ]]; then
+        zsh_system_directory="/etc/zshenv"
+    else
+        zsh_system_directory="/etc/zsh/zshenv"
+    fi
+
+    if [[ $SHELL != "$target_shell" ]]; then
         log_info "[Configuring]:" "Changing Default Shell to Zsh"
-        if grep -q "^$TARGET_SHELL$" /etc/shells; then
-            sudo chsh -s "$TARGET_SHELL" "$USER"
+        if grep -q "^$target_shell$" /etc/shells; then
+            sudo chsh -s "$target_shell" "$USER"
             log_info "✓ Default shell changed to Zsh for $USER" ""
         else
             log_error "[Error]:" "Zsh not found in /etc/shells. Skipping shell change."
         fi
     fi
 
-    if ! grep -q "ZDOTDIR" /etc/zshenv 2> /dev/null; then
+
+    if ! grep -q "ZDOTDIR" $zsh_system_directory  2> /dev/null; then
         log_info "[Configuring]:"  "Zsh Environment"
         mkdir -p "$XDG_STATE_HOME/zsh"
         touch "$XDG_STATE_HOME/zsh/zsh_history"
 
-        echo "export ZDOTDIR=\$HOME/.config/zsh" | sudo tee -a /etc/zshenv > /dev/null
+        echo "export ZDOTDIR=\$HOME/.config/zsh" | sudo tee -a $zsh_system_directory > /dev/null
 
         # Clone plugins cleanly
         declare -A plugins=(
-               ["zsh-vi-mode"]="https://github.com/jeffreytse/zsh-vi-mode.git"
-               ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
-               ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
-               ["fzf-tab"]="https://github.com/Aloxaf/fzf-tab.git"
+            ["zsh-vi-mode"]="https://github.com/jeffreytse/zsh-vi-mode.git"
+            ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
+            ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
+            ["fzf-tab"]="https://github.com/Aloxaf/fzf-tab.git"
         )
 
         for plugin in "${!plugins[@]}"; do
             dest="$XDG_DATA_HOME/zsh/plugins/$plugin"
             if [[ ! -d "$dest" ]]; then
                 git clone "${plugins[$plugin]}" "$dest" 2> /dev/null || true
+                log_info "[Installed]:" "${plugins[$plugin]}"
             fi
         done
-        log_info "✓ Zsh configured and plugins installed" ""
+        log_info "✓" "Zsh configured"
     fi
 }
 
 configura_nerdfont() {
+    # Arch installed via package manager
+    [[ "$DISTRO" != "fedora" ]] && return 0
+
     if [[ ! -d "/usr/share/fonts/jetbrains-mono" ]]; then
         log_info "[Installing]:" "JetBrains Mono Nerd Font"
         sudo mkdir -p /usr/share/fonts/jetbrains-mono
@@ -257,7 +341,9 @@ configura_nerdfont() {
         sudo unzip -o "/usr/share/fonts/jetbrains-mono/JetBrainsMono.zip" -d /usr/share/fonts/jetbrains-mono/
         sudo rm "/usr/share/fonts/jetbrains-mono/JetBrainsMono.zip"
         sudo fc-cache -fv
-        log_info "✓ JetBrains Mono Nerd Font installed" ""
+        log_info "[Installed]:" "✓ JetBrains Mono Nerd Font"
+    else
+        log_warn "[Skipping]:" "JetBrains Mono Nerd Font detected"
     fi
 }
 
@@ -282,7 +368,7 @@ configure_nvm() {
 
     log_info "[Installing]:" "Language Servers..."
 
-    NODE_BIN_DIR=$(find "$NVM_DIR/versions/node" -maxdepth 2 -type d -name "bin" 2>/dev/null | head -n 1)
+    NODE_BIN_DIR=$(find "$NVM_DIR/versions/node" -maxdepth 2 -type d -name "bin" 2> /dev/null | head -n 1)
 
     if [[ -z $NODE_BIN_DIR || ! -f "$NODE_BIN_DIR/npm" ]]; then
         log_error "[Error]:" "Could not locate local NVM npm binary."
@@ -296,40 +382,39 @@ configure_nvm() {
     for server in "${servers[@]}"; do
         if ! npm list -g "$server" &> /dev/null; then
             npm install -g "$server"
-            log_info "✓ $server installed" ""
+            log_info "[Installed]:" "✓ $server"
         else
-            log_warn "✓ $server is already installed" ""
+            log_warn "[Skipping]:" "$server is already installed"
         fi
     done
 
     export PATH="$ORIGINAL_PATH"
 }
 
-configure_git() {
-    if [[ ! -d "$HOME/.ssh" ]]; then
-        log_info "[Configuring]:" "Git & SSH Keys"
-        mkdir -p "$XDG_CONFIG_HOME/git"
-        git config --global user.name "$USER"
-        git config --global user.email "$GITHUB_EMAIL"
-        ssh-keygen -t ed25519 -C "$GITHUB_EMAIL" -f "$HOME/.ssh/id_ed25519" -N "" || true
-
-        log_info "✓" "Github configured successfully"
-        log_warn "[IMPORTANT]:" "GitHub authentication still requires manual setup:"
-        log_warn "  1." "Run: gh auth login"
-        log_warn "  2." "Run: gh ssh-key add $HOME/.ssh/id_ed25519.pub --type signing"
-        log_warn "  3." "Test: ssh -T git@github.com"
-    fi
-}
 
 configure_hardware_and_daemons() {
-log_info "[Configuring]:" "Hardware & Daemons..."
-if command -v brightnessctl &> /dev/null; then
-    sudo usermod -aG video "$USER"
-fi
+    log_info "[Configuring]:" "Hardware & Daemons..."
 
-if ! sudo systemctl is-active --quiet power-profiles-daemon; then
-    sudo systemctl enable --now power-profiles-daemon
-fi
+    if command -v brightnessctl &> /dev/null; then
+        sudo usermod -aG video "$USER"
+        log_info "[Configured]:" "✓ brightnessctl"
+    else
+        log_warn "[Skipping]:" "brightnessctl already configured" ""
+    fi
+
+    if ! sudo systemctl is-active --quiet power-profiles-daemon; then
+        sudo systemctl enable --now power-profiles-daemon
+        log_info "[Configured]:" "✓ power-profiles-daemon"
+    else
+        log_warn "[Skipping]:" "power-profiles-daemon already configured" ""
+    fi
+
+    if [[ "$DISTRO" == "arch" && ! -d "{$XDG_CONFIG_HOME}/systemd" ]]; then
+        systemctl --user enable --now pipewire pipewire-pulse wireplumber
+        log_info "[Configured]:" "✓ audio daemons"
+    else
+        log_warn "[Skipping]:" "audio daemons have already been configured" ""
+    fi
 }
 
 download_assets() {
@@ -351,32 +436,32 @@ download_assets() {
     fi
 }
 
-# Function that detects display environment
-detect_display_enviroment() {
-    if command -v i3 > /dev/null 2>&1 && ! command -v sway > /dev/null 2>&1; then
-        USE_WAYLAND="n"
-    elif command -v sway > /dev/null 2>&1 && ! command -v i3 > /dev/null 2>&1; then
-        USE_WAYLAND="y"
-    else
-        while true; do
-            read -r -p "Do you want to use Wayland with Sway? \(if no, use X11 with i3\) \(y/n\): " temp_input
-            case "-$temp_input" in
-                -[Yy]*)
-                    USE_WAYLAND="y"
-                    break
-                ;;
-                -[Nn]*)
-                    USE_WAYLAND="n"
-                    break
-                ;;
-                *) echo "Please answer y or n." ;;
-            esac
-        done
+configure_git() {
+    if [[ ! -d "$HOME/.ssh" ]]; then
+        log_info "[Configuring]:" "Git & SSH Keys"
+
+        # Make sure paths exists
+        mkdir -p "$XDG_CONFIG_HOME/git"
+        mkdir -p "$$HOME/.ssh"
+
+        # Make sure config file exists
+        touch "$XDG_CONFIG_HOME/git/config"
+
+        git config --global user.name "$USER"
+        git config --global user.email "$GITHUB_EMAIL"
+
+        ssh-keygen -t ed25519 -C "$GITHUB_EMAIL" -f "$HOME/.ssh/id_ed25519" -N "" || true
+
+        log_info "✓" "Github configured successfully"
+        log_warn "[IMPORTANT]:" "GitHub authentication still requires manual setup:"
+        log_warn "  1." "Run: gh auth login"
+        log_warn "  2." "Run: gh ssh-key add $HOME/.ssh/id_ed25519.pub --type signing"
+        log_warn "  3." "Test: ssh -T git@github.com"
     fi
 }
 
-
 main() {
+    detect_distro
     detect_display_enviroment
     update_system
     configure_dotfiles
@@ -384,15 +469,22 @@ main() {
     configure_zsh
     configura_nerdfont
     configure_nvm
-    configure_git
     configure_hardware_and_daemons
     download_assets
+    configure_git
 
-    log_info "✓ Setup log saved to: $LOG_FILE" ""
     log_info "✓ Installation Complete" ""
+    log_info "Setup log saved to: $LOG_FILE" ""
+
+    if [[ "$USE_WAYLAND" == "y" && "$DISTRO" == "arch"  ]]; then
+        log_warn "NOTE: if running on a VirtualBox machine" ""
+        log_warn "   Add the following to the top of $XDG_CONFIG_HOME/zsh/.zprofile" ""
+        log_warn "      export WLR_RENDERER=pixman" ""
+        log_warn "      export WLR_NO_HARDWARE_CURSORS=1" ""
+    fi
     log_warn "Next steps:" ""
     log_warn "  1. Manually complete GitHub authentication (see instructions above)" ""
-    log_warn "  2. Reboot or log out, then log into TTY1 to auto-launch Sway/i3." ""
+    log_warn "  2. Reboot or log out to auto-launch Sway/i3." ""
 }
 
 main
