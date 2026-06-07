@@ -21,7 +21,7 @@ curl -o- https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master
 ```
 
 ## Modify the script
-*NOTE: replace `<script_name>` with the either `arch_setup`, `fedora_setup`, or `mint_setup`*
+*NOTE: replace `<script_name>` with the either `bootstrap` or `bootstrap_mint`
 
   1. Download the script
 ```console
@@ -37,5 +37,5 @@ chmod +x <script_name>.sh
 
   4. Run it
 ```console
-./<script_name>.sh "your-email@example.com"
+./<script_name>.sh "your-github-email@example.com"
 ```
