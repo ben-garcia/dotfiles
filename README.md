@@ -2,24 +2,22 @@
 
 After a fresh installation run:
 
-## Arch Linux(Sway/i3 spin)
+## Arch or Fedora
+
+Both Wayland(Sway) and X11(i3) are supported
 
 ```console
-bash <(curl -sL https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/arch_setup.sh) "your-email@example.com"
+bash <(curl -sL https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/bootstrap.sh) "your-github-email@example.com"
 ```
 
-## Fedora Linux(i3 spin)
+## Mint
 
-```console
-curl -o- https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/fedora_setup.sh | bash -s -- "your-email@example.com"
-```
-
-## Linux Mint
+Only X11(i3)
 
 Building `alacritty`, `i3`, `neovim`, and `btop` from source to get the latest versions.
 
 ```console
-curl -o- https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/mint_setup.sh | bash -s -- "your-email@example.com"
+curl -o- https://raw.githubusercontent.com/ben-garcia/dotfiles/refs/heads/master/bootstrap_mint.sh | bash -s -- "your-email@example.com"
 ```
 
 ## Modify the script

@@ -1,5 +1,6 @@
 #!/usr/bin/bash
 
+
 # Exit on error, undefined variables, and pipe failures
 set -euo pipefail
 
@@ -8,7 +9,14 @@ GREEN="\e[1;32m"
 YELLOW="\e[1;33m"
 RESET="\e[0m"
 
-GITHUB_EMAIL="7rubengarcia7@gmail.com"
+# Script take one argument
+# $2, $3... are ignored
+if [ $# -eq 0 ]; then
+  echo -e "${RED}[Error]:${RESET} usage: ./$0 <github_email>"
+  exit 1
+fi
+
+GITHUB_EMAIL="$1"
 DOTFILES_URL="https://github.com/ben-garcia/dotfiles.git"
 PROJECTS_DIR="${HOME}/Projects"
 DOTFILES_DIR="${PROJECTS_DIR}/dotfiles"
