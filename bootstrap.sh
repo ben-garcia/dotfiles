@@ -1,19 +1,19 @@
 #!/usr/bin/bash
 
-
 # Exit on error, undefined variables, and pipe failures
 set -euo pipefail
 
 RED="\e[1;31m"
 GREEN="\e[1;32m"
+BLUE="\e[1;34m"
 YELLOW="\e[1;33m"
 RESET="\e[0m"
 
 # Script take one argument
 # $2, $3... are ignored
 if [ $# -eq 0 ]; then
-  echo -e "${RED}[Error]:${RESET} usage: ./$0 <github_email>"
-  exit 1
+    echo -e "${RED}[Error]:${RESET} usage: ./$0 <github_email>"
+    exit 1
 fi
 
 GITHUB_EMAIL="$1"
@@ -38,9 +38,16 @@ exec > >(tee -a "$LOG_FILE")
 exec 2>&1
 
 # Function to output successful message
-# @1 green text
+# @1 blue text
 # @2 text
 log_info() {
+    echo -e "${BLUE}$1${RESET} $2"
+}
+
+# Function to output successful message
+# @1 green text
+# @2 text
+log_success() {
     echo -e "${GREEN}$1${RESET} $2"
 }
 
@@ -119,13 +126,8 @@ detect_distro() {
     esac
 }
 
-# Function that detects display environment
-detect_display_enviroment() {
-    if command -v i3 > /dev/null 2>&1 && ! command -v sway > /dev/null 2>&1 && [[ "$DISTRO" == "fedora" ]]; then
-        USE_WAYLAND="n"
-    elif command -v sway > /dev/null 2>&1 && ! command -v i3 > /dev/null 2>&1 && [[ "$DISTRO" == "fedora" ]]; then
-        USE_WAYLAND="y"
-    else
+# Function to get the user to choose Sway or i3
+prompt_user() {
         while true; do
             read -r -p "Do you want to use Wayland with Sway? (if no, use X11 with i3) (y/n): " temp_input
             case "-$temp_input" in
@@ -138,8 +140,39 @@ detect_display_enviroment() {
                     break
                 ;;
                 *) echo "Please answer y or n." ;;
-            esac
-        done
+        esac
+    done
+}
+
+# Function that detects display environment
+detect_display_enviroment() {
+    if [[ "$XDG_SESSION_TYPE" == "wayland" &&
+         ("$DISTRO" == "fedora" || "$DISTRO" == "arch") ]]; then
+        log_info "[Detected]:" "wayland session"
+        USE_WAYLAND="y"
+    elif [[ "$XDG_SESSION_TYPE" == "x11" &&
+           ("$DISTRO" == "fedora" || "$DISTRO" == "arch") ]]; then
+        log_info "[Detected]:" "x11 session"
+        USE_WAYLAND="n"
+    elif [[ "$XDG_SESSION_TYPE" == "tty" && "$DISTRO" == "arch" ]]; then
+        prompt_user
+    elif [[ "$XDG_SESSION_TYPE" == "tty" && "$DISTRO" == "fedora" ]]; then
+        if command -v sway > /dev/null 2>&1 && ! command -v i3 > /dev/null 2>&1; then
+            # Fedora Sway Spin
+            USE_WAYLAND="y"
+        elif command -v i3 > /dev/null 2>&1 && ! command -v sway > /dev/null 2>&1; then
+            # Fedora i3 Spin
+            USE_WAYLAND="n"
+        else
+            # Fedora Workstation
+            prompt_user
+        fi
+    else
+        log_error "[Error]: ${XDG_SESSION_TYPE} session" ""
+        log_error "     It looks like you've already executed the script." ""
+        log_error "     Cannot run the script in a tty environment AFTER a successfully execution" ""
+        log_error "     To successfully execute the script again, execute in a wayland/x11 session" ""
+        exit 1
     fi
 }
 
@@ -157,8 +190,7 @@ update_system() {
         package_manager="sudo pacman -S --needed --noconfirm"
     fi
 
-
-    if [[ $USE_WAYLAND == 'y' ]]; then
+    if [[ "$USE_WAYLAND" == 'y' ]]; then
         log_info "[Installing]:" "Sway suite"
         $package_manager sway swaybg swaylock waybar wofi wl-clipboard
     else
@@ -178,7 +210,7 @@ update_system() {
         $package_manager @development-tools git unzip \
             zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
             brightnessctl alacritty neovim btop fzf \
-            dunst shfmt shellcheck
+            dunst shfmt shellcheck terminus-fonts-console
         # Remove tuned in favor of power-profiles-daemon
         $package_manager --allowerasing power-profiles-daemon python-gobject
     else
@@ -186,7 +218,7 @@ update_system() {
             base-devel git unzip curl pipewire pipewire-pulse wireplumber \
             zsh bat fd ripgrep tree github-cli ranger brightnessctl \
             alacritty neovim btop fzf ttf-jetbrains-mono-nerd openssh \
-            firefox dunst power-profiles-daemon libnotify shfmt shellcheck
+            firefox dunst power-profiles-daemon libnotify shfmt shellcheck terminus-font
     fi
 }
 
@@ -206,8 +238,8 @@ configure_dotfiles() {
 
         # Loop through the dotfiles config directory
         for directory in *; do
-            if { [ "$USE_WAYLAND" == "y" ] && [[ " ${x11_only_apps[*]} " =~ " ${directory} " ]]; } ||
-               { [ "$USE_WAYLAND" == "n" ] && [[ " ${wayland_only_apps[*]} " =~ " ${directory} " ]]; }; then
+            if { [ "$USE_WAYLAND" == "y" ] && [[ " ${x11_only_apps[*]} " =~ " ${directory} " ]]; } \
+                                                                                                   || { [ "$USE_WAYLAND" == "n" ] && [[ " ${wayland_only_apps[*]} " =~ " ${directory} " ]]; }; then
                 # Ignore wayland apps on an x11 system and
                 # ignore x11 apps on a wayland system
                 continue
@@ -239,7 +271,7 @@ configure_dotfiles() {
             fi
         done
 
-        log_info "✓ Dotfiles successfully configured" ""
+        log_success "Dotfiles successfully configured" ""
     else
         cd "${PROJECTS_DIR}/dotfiles"
         git pull
@@ -253,23 +285,24 @@ configure_session() {
 
     local zprofile_path="$XDG_CONFIG_HOME/zsh/.zprofile"
 
-    if [[ $USE_WAYLAND == "y" ]]; then
+    if [[ "$USE_WAYLAND" == "y" ]]; then
         log_info "[Configuring]:" "Sway"
         if ! grep -q "exec sway" "$zprofile_path"; then
             cat << 'EOF' >> "$zprofile_path"
 # Auto-launch Sway on login
-if [[ -z $DISPLAY && "$(tty)" == "/dev/tty1" ]]; then
+if [[ -z "$DISPLAY" && "$(tty)" == "/dev/tty1" ]]; then
   exec sway
 fi
 EOF
-            log_info "[Configured]:" "Sway set to auto-start on login"
+            log_success "[Configured]:" "Sway"
         fi
     else
         log_info "[Configuring]:" "i3"
 
-        if [[ "$DISTRO" == "arch" ]]; then
-            echo "exec i3" > $HOME/.xinitrc
+        # Manually have to change the XDG_SESSION_TYPE enviroment variable
+        echo -e "export XDG_SESSION_TYPE=x11\nexport XDG_CURRENT_DESKTOP=i3\n\nexec i3" > "${HOME}/.xinitrc"
 
+        if [[ "$DISTRO" == "arch" ]]; then
             # Ensure the profile file exists
             mkdir -p "$XDG_CONFIG_HOME/zsh"
             touch "$XDG_CONFIG_HOME/zsh/.zprofile"
@@ -278,11 +311,11 @@ EOF
         if ! grep -q "exec startx" "$zprofile_path"; then
             cat << 'EOF' >> "$zprofile_path"
 # Auto-launch i3 via startx on login
-if [[ -z $DISPLAY && "$(tty)" == "/dev/tty1" ]]; then
+if [[ -z "$DISPLAY" && "$(tty)" == "/dev/tty1" ]]; then
   exec startx
 fi
 EOF
-            log_info "[Configured]:" "i3 set to auto-start on login"
+            log_success "[Configured]:" "i3"
         fi
     fi
 }
@@ -301,12 +334,11 @@ configure_zsh() {
         log_info "[Configuring]:" "Changing Default Shell to Zsh"
         if grep -q "^$target_shell$" /etc/shells; then
             sudo chsh -s "$target_shell" "$USER"
-            log_info "✓ Default shell changed to Zsh for $USER" ""
+            log_success "Default shell changed to Zsh for $USER" ""
         else
             log_error "[Error]:" "Zsh not found in /etc/shells. Skipping shell change."
         fi
     fi
-
 
     if ! grep -q "ZDOTDIR" $zsh_system_directory  2> /dev/null; then
         log_info "[Configuring]:"  "Zsh Environment"
@@ -317,10 +349,10 @@ configure_zsh() {
 
         # Clone plugins cleanly
         declare -A plugins=(
-            ["zsh-vi-mode"]="https://github.com/jeffreytse/zsh-vi-mode.git"
-            ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
-            ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
-            ["fzf-tab"]="https://github.com/Aloxaf/fzf-tab.git"
+                 ["zsh-vi-mode"]="https://github.com/jeffreytse/zsh-vi-mode.git"
+                 ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
+                 ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
+                 ["fzf-tab"]="https://github.com/Aloxaf/fzf-tab.git"
         )
 
         for plugin in "${!plugins[@]}"; do
@@ -330,7 +362,7 @@ configure_zsh() {
                 log_info "[Installed]:" "${plugins[$plugin]}"
             fi
         done
-        log_info "✓" "Zsh configured"
+        log_success "[Configured]" "Zsh"
     fi
 }
 
@@ -349,7 +381,7 @@ configura_nerdfont() {
         sudo unzip -o "/usr/share/fonts/jetbrains-mono/JetBrainsMono.zip" -d /usr/share/fonts/jetbrains-mono/
         sudo rm "/usr/share/fonts/jetbrains-mono/JetBrainsMono.zip"
         sudo fc-cache -fv
-        log_info "[Installed]:" "✓ JetBrains Mono Nerd Font"
+        log_success "[Installed]:" "JetBrains Mono Nerd Font"
     else
         log_warn "[Skipping]:" "JetBrains Mono Nerd Font detected"
     fi
@@ -371,7 +403,7 @@ configure_nvm() {
         nvm install --lts
         nvm alias default 'lts/*'
         set -u
-        log_info "✓ NVM and Node LTS installed" ""
+        log_success "NVM and Node LTS installed" ""
     fi
 
     log_info "[Installing]:" "Language Servers..."
@@ -390,7 +422,7 @@ configure_nvm() {
     for server in "${servers[@]}"; do
         if ! npm list -g "$server" &> /dev/null; then
             npm install -g "$server"
-            log_info "[Installed]:" "✓ $server"
+            log_success "[Installed]:" "$server"
         else
             log_warn "[Skipping]:" "$server is already installed"
         fi
@@ -399,29 +431,87 @@ configure_nvm() {
     export PATH="$ORIGINAL_PATH"
 }
 
-
 configure_hardware_and_daemons() {
     log_info "[Configuring]:" "Hardware & Daemons..."
 
-    if command -v brightnessctl &> /dev/null; then
+    if ! command -v brightnessctl &> /dev/null; then
         sudo usermod -aG video "$USER"
-        log_info "[Configured]:" "✓ brightnessctl"
+        log_success "[Configured]:" "brightnessctl"
     else
         log_warn "[Skipping]:" "brightnessctl already configured" ""
     fi
 
     if ! sudo systemctl is-active --quiet power-profiles-daemon; then
         sudo systemctl enable --now power-profiles-daemon
-        log_info "[Configured]:" "✓ power-profiles-daemon"
+        log_success "[Configured]:" "power-profiles-daemon"
     else
         log_warn "[Skipping]:" "power-profiles-daemon already configured" ""
     fi
 
     if [[ "$DISTRO" == "arch" && ! -d "{$XDG_CONFIG_HOME}/systemd" ]]; then
         systemctl --user enable --now pipewire pipewire-pulse wireplumber
-        log_info "[Configured]:" "✓ audio daemons"
+        log_success "[Configured]:" "audio daemons"
     else
         log_warn "[Skipping]:" "audio daemons have already been configured" ""
+    fi
+
+    local vconsole_config="/etc/vconsole.conf"
+
+    # Remove display manager on fedora and setup TTY1 login with bigger font
+    if [[ "$DISTRO" == "fedora" ]] && [[ "$(systemctl is-active display-manager)" == "active" ]]; then
+        sudo systemctl disable display-manager
+        sudo systemctl set-default multi-user.target
+
+        if ! grep -q "^FONT=\"ter-132b\"" "$vconsole_config"; then
+            # Check for a FONT entry, if there is comment it out before
+            # appending a the new font
+            local vconsole_font
+            vconsole_font=$(grep "^FONT=" "$vconsole_config")
+            if [[ -n "$vconsole_font" ]]; then
+                log_warn "Commenting out ${vconsole_font} before appending to ${vconsole_config}" ""
+                # Modify /etc/vconsole.conf by commenting out the previous FONT
+                sudo sed -i 's/\(^FONT=.*\)/#\1/' "$vconsole_config"
+            fi
+
+            # Configure the tty font
+            echo -e "FONT=\"ter-132b\"" | sudo tee -a "$vconsole_config" > /dev/null
+            # force Fedora to rebuild the boot image with the new font settings
+            log_info "[Configuring]:" "The boot image... Rebuilding (this can take a few minutes)"
+            sudo dracut -f --regenerate-all
+            log_success "[Configured]:" "Boot image has been successfully rebuilt (reboot required)"
+            log_success "[Configured]:" "tty login"
+        fi
+
+    # Setup TTY1 login with bigger font
+    elif [[ "$DISTRO" == "arch" ]] && ! grep -q "FONT=ter-" "$vconsole_config"; then
+        log_info "[Configuring]:" "Rebuilding the boot image..."
+
+        local mkinicpid_config="/etc/mkinitcpio.conf"
+
+        echo -e "FONT=ter-132b" | sudo tee -a "$vconsole_config" > /dev/null
+
+        # 1. Check if vconsole is already in the HOOKS array
+        if grep -qE '^HOOKS=.*\<vconsole\>' "$mkinicpid_config"; then
+            log_warn "[Skipping]:" "vconsole hook is already present in $mkinicpid_config."
+        else
+            log_info "[Configuring]" "Adding vconsole hook to $mkinicpid_config..."
+
+            # 2. Inject 'vconsole' right before 'block' or 'filesystems'
+            # This ensures proper ordering without breaking existing setups.
+            if grep -q "block" "$mkinicpid_config"; then
+                sed -i 's/\<block\>/vconsole block/' "$mkinicpid_config"
+            elif grep -q "filesystems" "$mkinicpid_config"; then
+                sed -i 's/\<filesystems\>/vconsole filesystems/' "$mkinicpid_config"
+            else
+                # Fallback: Just append it to the end of the array if 'block'/'filesystems' aren't found
+                sed -i 's/\(^HOOKS=(.*\)\()$\)/\1 vconsole\2/' "$mkinicpid_config"
+            fi
+
+            log_success "[Configured]:" "Successfully updated HOOKS."
+        fi
+        log_success "[Configured]:" "Boot image has been rebuilt(reboot required)"
+    else
+        log_warn "[Skipping]:" "tty login is already configured"
     fi
 }
 
@@ -430,7 +520,7 @@ download_assets() {
     mkdir -p "$HOME/Pictures"
     if [[ ! -f "$HOME/Pictures/wallpaper.jpg" ]]; then
         curl -L -o "$HOME/Pictures/wallpaper.jpg" "https://unsplash.com/photos/u27Rrbs9Dwc/download?force=true&w=1920" || echo "Warning: Wallpaper failed"
-        log_info "[Dowloaded]:" "Wallpapper to $HOME/Pictures/wallpaper.jpg"
+        log_success "[Dowloaded]:" "Wallpapper to $HOME/Pictures/wallpaper.jpg"
     else
         log_warn "[Skipping]:" "Wallpapper... $HOME/Pictures/wallpaper.jpg detected"
     fi
@@ -438,7 +528,7 @@ download_assets() {
     # Download Screensaver
     if [[ ! -f "$HOME/Pictures/screensaver.png" ]]; then
         curl -L -o "$HOME/Pictures/screensaver.png" "https://images2.alphacoders.com/109/1098024.png" || echo "Warning: Screensaver failed"
-        log_info "[Dowloaded]:" "Screensaver to $HOME/Pictures/wallpaper.jpg"
+        log_success "[Dowloaded]:" "Screensaver to $HOME/Pictures/wallpaper.jpg"
     else
         log_warn "[Skipping]:" "Screensaver... $HOME/Pictures/screensaver.png detected"
     fi
@@ -460,7 +550,7 @@ configure_git() {
 
         ssh-keygen -t ed25519 -C "$GITHUB_EMAIL" -f "$HOME/.ssh/id_ed25519" -N "" || true
 
-        log_info "✓" "Github configured successfully"
+        log_success "[Configured]:" "Github successfully"
         log_warn "[IMPORTANT]:" "GitHub authentication still requires manual setup:"
         log_warn "  1." "Run: gh auth login"
         log_warn "  2." "Run: gh ssh-key add $HOME/.ssh/id_ed25519.pub --type signing"
@@ -481,7 +571,9 @@ main() {
     download_assets
     configure_git
 
-    log_info "✓ Installation Complete" ""
+    log_success "=============================================" ""
+    log_success "=========== Installation Complete ===========" ""
+    log_success "=============================================" ""
     log_info "Setup log saved to: $LOG_FILE" ""
 
     if [[ "$USE_WAYLAND" == "y" && "$DISTRO" == "arch"  ]]; then
