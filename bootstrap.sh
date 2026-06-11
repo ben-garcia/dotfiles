@@ -69,9 +69,9 @@ log_warn() {
 # @1 app directory
 link_directory() {
     # The source directory
-    local source="${DOTFILES_DIR}/config/$directory"
+    local source="${DOTFILES_DIR}/config/$1"
     # The destination link
-    local destination="${XDG_CONFIG_HOME}/$directory"
+    local destination="${XDG_CONFIG_HOME}/$1"
     # The backup directory
     local backup_directory="${XDG_STATE_HOME}/dotfiles_backup"
 
@@ -238,14 +238,13 @@ configure_dotfiles() {
 
         # Loop through the dotfiles config directory
         for directory in *; do
-            if { [ "$USE_WAYLAND" == "y" ] && [[ " ${x11_only_apps[*]} " =~ " ${directory} " ]]; } \
-                                                                                                   || { [ "$USE_WAYLAND" == "n" ] && [[ " ${wayland_only_apps[*]} " =~ " ${directory} " ]]; }; then
+            if { [ "$USE_WAYLAND" == "y" ] && [[ " ${x11_only_apps[*]} " =~ " ${directory} " ]]; } ||
+               { [ "$USE_WAYLAND" == "n" ] && [[ " ${wayland_only_apps[*]} " =~ " ${directory} " ]]; }; then
                 # Ignore wayland apps on an x11 system and
                 # ignore x11 apps on a wayland system
                 continue
             fi
 
-            # link_directory "${DOTFILES_DIR}/config/$directory" "${XDG_CONFIG_HOME}/$directory"
             link_directory "$directory"
         done
 
