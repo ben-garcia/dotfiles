@@ -47,8 +47,9 @@
     },
 
     "temperature": {
-        // Thermal Zones: Sway/Waybar reads thermal data directly from the Linux /sys/class/thermal/ tree. If your temperature reading doesn't appear or seems off, change the "thermal-zone": 2 line in config.jsonc to 0 or 1.
-        "thermal-zone": 2, // You may need to tweak this zone index for x86_pkg_temp
+        // Thermal Zones: Sway/Waybar reads thermal data directly from the Linux /sys/class/thermal/ tree.
+        // If your temperature reading doesn't appear or seems off, change the "thermal-zone": 2 line in config.jsonc to 0 or 1.
+        "thermal-zone": 0, // You may need to tweak this zone index for x86_pkg_temp
         "base-temperature": 20,
         "critical-threshold": 80,
         "format": "( {temperatureC}°C)",
@@ -78,7 +79,6 @@
     },
 
     "network": {
-        "interface": "enp0s3",
         "format-wifi": "{icon} {essid} (󰘊 {signalStrength}%)",
         "format-disconnected": "󱛅 not connected",
         "format-icons": ["󱛅", "󰤯", "󰤟", "󰤢", "󰤥", "󰤨"]
@@ -86,6 +86,6 @@
 
     "clock": {
         // Replaces internal/date
-        "format": " {0:%m-%d-%Y} 󱑂 {0:%I:%M}",
+        "format": " {0:%m-%d-%Y} 󱑂 {0:%I:%M}"
     }
 }
