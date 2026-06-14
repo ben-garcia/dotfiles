@@ -96,7 +96,10 @@ link_directory() {
         else
             # Make sure the dotfiles backup directory exists
             mkdir -p "$backup_directory"
-            local full_backup_path="${backup_directory}/${destination##*/}_$(date +%Y%m%d_%H%M%S)"
+
+            local full_backup_path
+            full_backup_path="${backup_directory}/${destination##*/}_$(date +%Y%m%d_%H%M%S)"
+
             # It's a real directory, so create a backup
             log_warn "[Backup]:" "Directory already exists at $destination... Creating a backup at $full_backup_path"
             mv "$destination" "$full_backup_path"
@@ -218,7 +221,7 @@ update_system() {
             base-devel git unzip curl pipewire pipewire-pulse wireplumber \
             zsh bat fd ripgrep tree github-cli ranger brightnessctl \
             alacritty neovim btop fzf ttf-jetbrains-mono-nerd openssh \
-            firefox dunst power-profiles-daemon libnotify shfmt shellcheck terminus-font
+            firefox dunst power-profiles-daemon libnotify shfmt shellcheck terminus-font zram-generator
     fi
 }
 
@@ -430,6 +433,32 @@ configure_nvm() {
     export PATH="$ORIGINAL_PATH"
 }
 
+configure_swap() {
+    # Fedora comes pre-installed with zram0
+    [[ "$DISTRO" != "arch" ]] && return 0
+
+    # Make sure unit isn't already running
+    if ! sudo systemctl is-active --quiet systemd-zram-setup@zram0.service; then
+        log_info "[Contiguring]:" "Swap Memory"
+            cat << 'EOF' >> "/etc/systemd/zram-generator.conf"
+[zram0]
+# Allocate zram size equal to total physical RAM
+# Note: If you want it smaller, you can use zram-size = ram / 2 instead.
+zram-size = ram
+
+# Use zstd for the best balance of speed and high compression ratio
+compression-algorithm = zstd
+EOF
+        sudo systemctl daemon-reload
+        sudo systemctl start systemd-zram-setup@zram0.service
+
+        log_success "[Configured]:" "Swap Memory with zram0"
+        log_info "Run 'lsblk' or 'zramctl' to verify"
+    else
+        log_warn "[Skipping]:" "Swap Memory is already configured"
+    fi
+}
+
 configure_hardware_and_daemons() {
     log_info "[Configuring]:" "Hardware & Daemons..."
 
@@ -568,6 +597,7 @@ main() {
     configure_nvm
     configure_hardware_and_daemons
     download_assets
+    configure_swap
     configure_git
 
     log_success "=============================================" ""
