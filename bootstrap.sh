@@ -368,7 +368,7 @@ configure_zsh() {
     fi
 }
 
-configura_nerdfont() {
+configure_nerdfont() {
     # Arch installed via package manager
     [[ "$DISTRO" != "fedora" ]] && return 0
 
@@ -440,7 +440,9 @@ configure_swap() {
     # Make sure unit isn't already running
     if ! sudo systemctl is-active --quiet systemd-zram-setup@zram0.service; then
         log_info "[Contiguring]:" "Swap Memory"
-            cat << 'EOF' >> "/etc/systemd/zram-generator.conf"
+        # fix: permission denied error:
+        # Use sudo tee -a instead of >> redirection
+            cat << 'EOF' | sudo tee -a "/etc/systemd/zram-generator.conf" > /dev/null
 [zram0]
 # Allocate zram size equal to total physical RAM
 # Note: If you want it smaller, you can use zram-size = ram / 2 instead.
@@ -453,7 +455,7 @@ EOF
         sudo systemctl start systemd-zram-setup@zram0.service
 
         log_success "[Configured]:" "Swap Memory with zram0"
-        log_info "Run 'lsblk' or 'zramctl' to verify"
+        log_info "Run lsblk or zramctl to verify" ""
     else
         log_warn "[Skipping]:" "Swap Memory is already configured"
     fi
@@ -593,7 +595,7 @@ main() {
     configure_dotfiles
     configure_session
     configure_zsh
-    configura_nerdfont
+    configure_nerdfont
     configure_nvm
     configure_hardware_and_daemons
     download_assets
