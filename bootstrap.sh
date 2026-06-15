@@ -478,7 +478,7 @@ configure_hardware_and_daemons() {
         log_warn "[Skipping]:" "power-profiles-daemon already configured" ""
     fi
 
-    if [[ "$DISTRO" == "arch" && ! -d "{$XDG_CONFIG_HOME}/systemd" ]]; then
+    if [[ "$DISTRO" == "arch" && ! -d "${XDG_CONFIG_HOME}/systemd" ]]; then
         systemctl --user enable --now pipewire pipewire-pulse wireplumber
         log_success "[Configured]:" "audio daemons"
     else
