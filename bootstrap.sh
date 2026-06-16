@@ -433,34 +433,6 @@ configure_nvm() {
     export PATH="$ORIGINAL_PATH"
 }
 
-configure_swap() {
-    # Fedora comes pre-installed with zram0
-    [[ "$DISTRO" != "arch" ]] && return 0
-
-    # Make sure unit isn't already running
-    if ! sudo systemctl is-active --quiet systemd-zram-setup@zram0.service; then
-        log_info "[Contiguring]:" "Swap Memory"
-        # fix: permission denied error:
-        # Use sudo tee -a instead of >> redirection
-            cat << 'EOF' | sudo tee -a "/etc/systemd/zram-generator.conf" > /dev/null
-[zram0]
-# Allocate zram size equal to total physical RAM
-# Note: If you want it smaller, you can use zram-size = ram / 2 instead.
-zram-size = ram
-
-# Use zstd for the best balance of speed and high compression ratio
-compression-algorithm = zstd
-EOF
-        sudo systemctl daemon-reload
-        sudo systemctl start systemd-zram-setup@zram0.service
-
-        log_success "[Configured]:" "Swap Memory with zram0"
-        log_info "Run lsblk or zramctl to verify" ""
-    else
-        log_warn "[Skipping]:" "Swap Memory is already configured"
-    fi
-}
-
 configure_hardware_and_daemons() {
     log_info "[Configuring]:" "Hardware & Daemons..."
 
@@ -468,21 +440,21 @@ configure_hardware_and_daemons() {
         sudo usermod -aG video "$USER"
         log_success "[Configured]:" "brightnessctl"
     else
-        log_warn "[Skipping]:" "brightnessctl already configured" ""
+        log_warn "[Skipping]:" "brightnessctl already configured"
     fi
 
     if ! sudo systemctl is-active --quiet power-profiles-daemon; then
         sudo systemctl enable --now power-profiles-daemon
         log_success "[Configured]:" "power-profiles-daemon"
     else
-        log_warn "[Skipping]:" "power-profiles-daemon already configured" ""
+        log_warn "[Skipping]:" "power-profiles-daemon already configured"
     fi
 
     if [[ "$DISTRO" == "arch" && ! -d "${XDG_CONFIG_HOME}/systemd" ]]; then
         systemctl --user enable --now pipewire pipewire-pulse wireplumber
         log_success "[Configured]:" "audio daemons"
     else
-        log_warn "[Skipping]:" "audio daemons have already been configured" ""
+        log_warn "[Skipping]:" "audio daemons have already been configured"
     fi
 
     local vconsole_config="/etc/vconsole.conf"
@@ -588,6 +560,85 @@ configure_git() {
     fi
 }
 
+# Function to create swap memory
+configure_swap() {
+    # Fedora comes pre-installed with zram0
+    [[ "$DISTRO" != "arch" ]] && return 0
+
+    # Make sure unit isn't already running
+    if ! sudo systemctl is-active --quiet systemd-zram-setup@zram0.service; then
+        log_info "[Configuring]:" "Swap Memory"
+        # fix: permission denied error:
+        # Use sudo tee -a instead of >> redirection
+            cat << 'EOF' | sudo tee -a "/etc/systemd/zram-generator.conf" > /dev/null
+[zram0]
+# Allocate zram size equal to total physical RAM
+# Note: If you want it smaller, you can use zram-size = ram / 2 instead.
+zram-size = ram
+
+# Use zstd for the best balance of speed and high compression ratio
+compression-algorithm = zstd
+EOF
+        sudo systemctl daemon-reload
+        sudo systemctl start systemd-zram-setup@zram0.service
+
+        log_success "[Configured]:" "Swap Memory with zram0"
+        log_info "Run lsblk or zramctl to verify" ""
+    else
+        log_warn "[Skipping]:" "Swap Memory is already configured"
+    fi
+}
+
+# Function that disables the dedicated Nvidia GPU on the asus n56jn laptop
+disable_nvidia_gpu() {
+    local board_name
+    local system_vendor
+
+    board_name=$(cat /sys/class/dmi/id/board_name 2> /dev/null)
+    system_vendor=$(cat /sys/class/dmi/id/sys_vendor 2> /dev/null)
+
+    # Make sure it only diables the gpu on the asus n56jn laptop
+    if [[ "$board_name" != "N56JN" && "$system_vendor" != "ASUSTeK Computer Inc." ]]; then
+        log_warn "[Skipping]:" "Disabling Nvidia GPU"
+        return 0
+    fi
+
+    log_info "[Detected]:" "Asus N56JN laptop. Disabling Nvidia GPU"
+
+    # Create the blacklist file
+    sudo tee "/etc/modprobe.d/blacklist-nvidia.conf" > /dev/null << EOF
+blacklist nouveau
+blacklist nvidia
+blacklist nvidia-drm
+blacklist nvidia-modeset
+blacklist nvidia-uvm
+EOF
+
+    # Create the udev rule
+    sudo tee "/etc/udev/rules.d/00-remove-nvidia.rules" > /dev/null << EOF
+# Remove NVIDIA 3D Controller
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x030200", ATTR{remove}="1"
+
+# Remove NVIDIA VGA Controller (Just in case)
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x030000", ATTR{remove}="1"
+
+# Alternatively: Target the Card Directly by Address
+# If you want to bypass class codes entirely and just brute-force that exact slot out of existence, you can use this incredibly simple udev rule instead:
+# Remove the specific NVIDIA device at PCI address 03:00.0
+# ACTION=="add", SUBSYSTEM=="pci", KERNELS=="0000:03:00.0", ATTR{remove}="1"
+EOF
+
+    # Rebuild initramfs
+    if [[ "$DISTRO" == "fedora" ]]; then
+        sudo dracut --force
+    else
+        sudo mkinitcpio -P
+    fi
+
+    log_success "[Disabled]:" "Nvidia GPU successfully"
+    log_warn "A reboot is required for the changes to take effect." ""
+}
+
 main() {
     detect_distro
     detect_display_enviroment
@@ -599,8 +650,9 @@ main() {
     configure_nvm
     configure_hardware_and_daemons
     download_assets
-    configure_swap
     configure_git
+    configure_swap
+    disable_nvidia_gpu
 
     log_success "=============================================" ""
     log_success "=========== Installation Complete ===========" ""
@@ -615,7 +667,7 @@ main() {
     fi
     log_warn "Next steps:" ""
     log_warn "  1. Manually complete GitHub authentication (see instructions above)" ""
-    log_warn "  2. Reboot or log out to auto-launch Sway/i3." ""
+    log_warn "  2. Reboot to complete the bootstrapping process." ""
 }
 
 main
