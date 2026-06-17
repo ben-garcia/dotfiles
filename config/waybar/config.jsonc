@@ -85,7 +85,6 @@
     },
 
     "clock": {
-        // Replaces internal/date
-        "format": " {0:%m-%d-%Y} 󱑂 {0:%I:%M}"
+        "format": " {0:%m-%d-%Y} 󱑂 {0:%I:%M%p}"
     }
 }
