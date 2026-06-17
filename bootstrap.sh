@@ -227,6 +227,9 @@ update_system() {
 
 # Configure dotfiles
 configure_dotfiles() {
+    # Make sure the parent directory exists
+    mkdir -p "$PROJECTS_DIR"
+
     if [ ! -d "${PROJECTS_DIR}/dotfiles" ]; then
         log_info "[Bootstrap]:" "Dotfiles configuration"
 
@@ -282,10 +285,10 @@ configure_dotfiles() {
 }
 
 configure_session() {
-    mkdir -p "$XDG_CONFIG_HOME/zsh"
-    touch "$XDG_CONFIG_HOME/zsh/.zprofile"
+    mkdir -p "${XDG_CONFIG_HOME}/zsh"
+    touch "${XDG_CONFIG_HOME}/zsh/.zprofile"
 
-    local zprofile_path="$XDG_CONFIG_HOME/zsh/.zprofile"
+    local zprofile_path="${XDG_CONFIG_HOME}/zsh/.zprofile"
 
     if [[ "$USE_WAYLAND" == "y" ]]; then
         log_info "[Configuring]:" "Sway"
@@ -306,8 +309,8 @@ EOF
 
         if [[ "$DISTRO" == "arch" ]]; then
             # Ensure the profile file exists
-            mkdir -p "$XDG_CONFIG_HOME/zsh"
-            touch "$XDG_CONFIG_HOME/zsh/.zprofile"
+            mkdir -p "${XDG_CONFIG_HOME}/zsh"
+            touch "${XDG_CONFIG_HOME}/zsh/.zprofile"
         fi
 
         if ! grep -q "exec startx" "$zprofile_path"; then
@@ -344,8 +347,8 @@ configure_zsh() {
 
     if ! grep -q "ZDOTDIR" $zsh_system_directory  2> /dev/null; then
         log_info "[Configuring]:"  "Zsh Environment"
-        mkdir -p "$XDG_STATE_HOME/zsh"
-        touch "$XDG_STATE_HOME/zsh/zsh_history"
+        mkdir -p "${XDG_STATE_HOME}/zsh"
+        touch "${XDG_STATE_HOME}/zsh/zsh_history"
 
         echo "export ZDOTDIR=\$HOME/.config/zsh" | sudo tee -a $zsh_system_directory > /dev/null
 
@@ -358,7 +361,7 @@ configure_zsh() {
         )
 
         for plugin in "${!plugins[@]}"; do
-            dest="$XDG_DATA_HOME/zsh/plugins/$plugin"
+            dest="${XDG_DATA_HOME}/zsh/plugins/$plugin"
             if [[ ! -d "$dest" ]]; then
                 git clone "${plugins[$plugin]}" "$dest" 2> /dev/null || true
                 log_info "[Installed]:" "${plugins[$plugin]}"
@@ -395,7 +398,7 @@ configure_nvm() {
 
     if ! command -v nvm &> /dev/null; then
         log_info "[Installing]:" "NVM and Node"
-        mkdir -p "$XDG_DATA_HOME/nvm"
+        mkdir -p "${XDG_DATA_HOME}/nvm"
         curl -q -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | PROFILE=/dev/null bash
 
         # Reload NVM explicitly
@@ -410,9 +413,9 @@ configure_nvm() {
 
     log_info "[Installing]:" "Language Servers..."
 
-    NODE_BIN_DIR=$(find "$NVM_DIR/versions/node" -maxdepth 2 -type d -name "bin" 2> /dev/null | head -n 1)
+    NODE_BIN_DIR=$(find "${NVM_DIR}/versions/node" -maxdepth 2 -type d -name "bin" 2> /dev/null | head -n 1)
 
-    if [[ -z $NODE_BIN_DIR || ! -f "$NODE_BIN_DIR/npm" ]]; then
+    if [[ -z "$NODE_BIN_DIR" || ! -f "${NODE_BIN_DIR}/npm" ]]; then
         log_error "[Error]:" "Could not locate local NVM npm binary."
         exit 1
     fi
@@ -509,6 +512,8 @@ configure_hardware_and_daemons() {
                 sed -i 's/\(^HOOKS=(.*\)\()$\)/\1 vconsole\2/' "$mkinicpid_config"
             fi
 
+            sudo mkinitcpio -P
+
             log_success "[Configured]:" "Successfully updated HOOKS."
         fi
         log_success "[Configured]:" "Boot image has been rebuilt(reboot required)"
@@ -519,33 +524,33 @@ configure_hardware_and_daemons() {
 
 download_assets() {
     # Download Wallpaper
-    mkdir -p "$HOME/Pictures"
-    if [[ ! -f "$HOME/Pictures/wallpaper.jpg" ]]; then
-        curl -L -o "$HOME/Pictures/wallpaper.jpg" "https://unsplash.com/photos/u27Rrbs9Dwc/download?force=true&w=1920" || echo "Warning: Wallpaper failed"
-        log_success "[Dowloaded]:" "Wallpapper to $HOME/Pictures/wallpaper.jpg"
+    mkdir -p "${HOME}/Pictures"
+    if [[ ! -f "${HOME}/Pictures/wallpaper.jpg" ]]; then
+        curl -L -o "${HOME}/Pictures/wallpaper.jpg" "https://unsplash.com/photos/u27Rrbs9Dwc/download?force=true&w=1920" || echo "Warning: Wallpaper failed"
+        log_success "[Dowloaded]:" "Wallpapper to ${HOME}/Pictures/wallpaper.jpg"
     else
-        log_warn "[Skipping]:" "Wallpapper... $HOME/Pictures/wallpaper.jpg detected"
+        log_warn "[Skipping]:" "Wallpapper... ${HOME}/Pictures/wallpaper.jpg detected"
     fi
 
     # Download Screensaver
     if [[ ! -f "$HOME/Pictures/screensaver.png" ]]; then
-        curl -L -o "$HOME/Pictures/screensaver.png" "https://images2.alphacoders.com/109/1098024.png" || echo "Warning: Screensaver failed"
-        log_success "[Dowloaded]:" "Screensaver to $HOME/Pictures/wallpaper.jpg"
+        curl -L -o "${HOME}/Pictures/screensaver.png" "https://images2.alphacoders.com/109/1098024.png" || echo "Warning: Screensaver failed"
+        log_success "[Dowloaded]:" "Screensaver to ${HOME}/Pictures/wallpaper.jpg"
     else
-        log_warn "[Skipping]:" "Screensaver... $HOME/Pictures/screensaver.png detected"
+        log_warn "[Skipping]:" "Screensaver... ${HOME}/Pictures/screensaver.png detected"
     fi
 }
 
 configure_git() {
-    if [[ ! -d "$HOME/.ssh" ]]; then
+    if [[ ! -d "${HOME}/.ssh" ]]; then
         log_info "[Configuring]:" "Git & SSH Keys"
 
         # Make sure paths exists
-        mkdir -p "$XDG_CONFIG_HOME/git"
-        mkdir -p "$$HOME/.ssh"
+        mkdir -p "${XDG_CONFIG_HOME}/git"
+        mkdir -p "${HOME}/.ssh"
 
         # Make sure config file exists
-        touch "$XDG_CONFIG_HOME/git/config"
+        touch "${XDG_CONFIG_HOME}/git/config"
 
         git config --global user.name "$USER"
         git config --global user.email "$GITHUB_EMAIL"
@@ -555,7 +560,7 @@ configure_git() {
         log_success "[Configured]:" "Github successfully"
         log_warn "[IMPORTANT]:" "GitHub authentication still requires manual setup:"
         log_warn "  1." "Run: gh auth login"
-        log_warn "  2." "Run: gh ssh-key add $HOME/.ssh/id_ed25519.pub --type signing"
+        log_warn "  2." "Run: gh ssh-key add ${HOME}/.ssh/id_ed25519.pub --type signing"
         log_warn "  3." "Test: ssh -T git@github.com"
     fi
 }
@@ -661,7 +666,7 @@ main() {
 
     if [[ "$USE_WAYLAND" == "y" && "$DISTRO" == "arch"  ]]; then
         log_warn "NOTE: if running on a VirtualBox machine" ""
-        log_warn "   Add the following to the top of $XDG_CONFIG_HOME/zsh/.zprofile" ""
+        log_warn "   Add the following to the top of ${XDG_CONFIG_HOME}/zsh/.zprofile" ""
         log_warn "      export WLR_RENDERER=pixman" ""
         log_warn "      export WLR_NO_HARDWARE_CURSORS=1" ""
     fi
