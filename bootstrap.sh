@@ -213,7 +213,7 @@ update_system() {
         $package_manager @development-tools git unzip \
             zsh bat fd-find ripgrep tree gh ranger gcc-c++ \
             brightnessctl alacritty neovim btop fzf \
-            dunst shfmt shellcheck terminus-fonts-console
+            dunst shfmt shellcheck terminus-fonts-console clang
         # Remove tuned in favor of power-profiles-daemon
         $package_manager --allowerasing power-profiles-daemon python-gobject
     else
@@ -221,7 +221,8 @@ update_system() {
             base-devel git unzip curl pipewire pipewire-pulse wireplumber \
             zsh bat fd ripgrep tree github-cli ranger brightnessctl \
             alacritty neovim btop fzf ttf-jetbrains-mono-nerd openssh \
-            firefox dunst power-profiles-daemon libnotify shfmt shellcheck terminus-font zram-generator
+            firefox dunst power-profiles-daemon libnotify shfmt shellcheck \
+            terminus-font zram-generator clang
     fi
 }
 
