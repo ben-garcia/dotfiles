@@ -222,7 +222,7 @@ update_system() {
             zsh bat fd ripgrep tree github-cli ranger brightnessctl \
             alacritty neovim btop fzf ttf-jetbrains-mono-nerd openssh \
             firefox dunst power-profiles-daemon libnotify shfmt shellcheck \
-            terminus-font zram-generator clang
+            terminus-font zram-generator clang ufw less man-db man-pages
     fi
 }
 
@@ -245,8 +245,8 @@ configure_dotfiles() {
 
         # Loop through the dotfiles config directory
         for directory in *; do
-            if { [ "$USE_WAYLAND" == "y" ] && [[ " ${x11_only_apps[*]} " =~ " ${directory} " ]]; } ||
-               { [ "$USE_WAYLAND" == "n" ] && [[ " ${wayland_only_apps[*]} " =~ " ${directory} " ]]; }; then
+            if { [ "$USE_WAYLAND" == "y" ] && [[ " ${x11_only_apps[*]} " =~ " ${directory} " ]]; } \
+                                                                                                   || { [ "$USE_WAYLAND" == "n" ] && [[ " ${wayland_only_apps[*]} " =~ " ${directory} " ]]; }; then
                 # Ignore wayland apps on an x11 system and
                 # ignore x11 apps on a wayland system
                 continue
@@ -355,10 +355,10 @@ configure_zsh() {
 
         # Clone plugins cleanly
         declare -A plugins=(
-                 ["zsh-vi-mode"]="https://github.com/jeffreytse/zsh-vi-mode.git"
-                 ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
-                 ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
-                 ["fzf-tab"]="https://github.com/Aloxaf/fzf-tab.git"
+                  ["zsh-vi-mode"]="https://github.com/jeffreytse/zsh-vi-mode.git"
+                  ["zsh-autosuggestions"]="https://github.com/zsh-users/zsh-autosuggestions.git"
+                  ["zsh-syntax-highlighting"]="https://github.com/zsh-users/zsh-syntax-highlighting.git"
+                  ["fzf-tab"]="https://github.com/Aloxaf/fzf-tab.git"
         )
 
         for plugin in "${!plugins[@]}"; do
@@ -520,6 +520,22 @@ configure_hardware_and_daemons() {
         log_success "[Configured]:" "Boot image has been rebuilt(reboot required)"
     else
         log_warn "[Skipping]:" "tty login is already configured"
+    fi
+
+    # Configure firewall on arch
+    if [[ "$DISTRO" == "arch" ]]; then
+
+        local ufw_status
+        ufw_status=$(sudo ufw status | cut -d ' ' -f2)
+
+        if [[ "$ufw_status" == "inactive" ]]; then
+            sudo ufw default allow outgoing
+            sudo ufw default deny incoming
+            sudo ufw enable
+            log_success "[Configured]:" "Firewall successfully"
+        else
+            log_warn "[Skipping]:" "Firewall already configured"
+        fi
     fi
 }
 
