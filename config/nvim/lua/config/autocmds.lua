@@ -10,9 +10,22 @@ vim.api.nvim_create_autocmd('LspAttach', {
   callback = function()
     local options = { noremap = true, silent = true }
 
-    -- keymappings
+  -- Keybinding -	Mode - LSP Action	                     - Equivalent Lua Function
+  --------------------------------------------------------------------------------
+  -- gra	      - N    - Visual	Code actions             - vim.lsp.buf.code_action()
+  -- gri	      - N    - Go to implementation            - vim.lsp.buf.implementation()
+  -- grn	      - N    - Rename symbol                   -	vim.lsp.buf.rename()
+  -- grr	      - N    - Find references (quickfix list) - vim.lsp.buf.references()
+  -- grt	      - N    - Go to type definition	         - vim.lsp.buf.type_definition()
+  -- gO	        - N    - Document symbols (outline)      - 	vim.lsp.buf.document_symbol()
+  -- K	        - N    - Hover documentation             - vim.lsp.buf.hover()
+  -- Ctrl-S	    - I    - Signature help	                 -vim.lsp.buf.signature_help()
+
+    -- custom keymappings
     vim.api.nvim_buf_set_keymap(0, 'n', '<leader>ga', '<cmd>lua vim.lsp.buf.code_action()<cr>', options)
-    vim.api.nvim_buf_set_keymap(0, 'n', '<leader>gd', '<cmd>lua vim.lsp.buf.definition()<cr>', options)
+    -- Implemented in lsp/ts_ls.lua.Modified to ignore node_mobules from
+    -- quickfix list
+    -- vim.api.nvim_buf_set_keymap(0, 'n', '<leader>gd', '<cmd>lua vim.lsp.buf.definition()<cr>', options)
     vim.api.nvim_buf_set_keymap(0, 'n', '<leader>ge', '<cmd>lua vim.lsp.buf.rename()<cr>', options)
     vim.api.nvim_buf_set_keymap(0, 'n', '<leader>gf', '<cmd>lua vim.lsp.buf.format()<cr>', options)
     vim.api.nvim_buf_set_keymap(0, 'n', '<leader>gg', '<cmd>lua vim.diagnostic.open_float()<cr>', options)

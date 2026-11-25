@@ -89,7 +89,7 @@ return {
   },
   on_attach = function(client, bufnr)
     -- Filter out node_modules on go-to-definition (supports Neovim 0.11+ multi-client merging)
-    vim.keymap.set('n', 'gd', function()
+    vim.keymap.set('n', '<leader>gd', function()
       vim.lsp.buf.definition({
         on_list = function(options)
           local filtered = vim.tbl_filter(function(item)
