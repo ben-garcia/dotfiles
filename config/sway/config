@@ -34,7 +34,7 @@ bindsym $mod+Shift+k move up
 bindsym $mod+Shift+l move right
 
 # split in horizontal orientation
-bindsym $mod+c split h
+bindsym $mod+b split h
 
 # split in vertical orientation
 bindsym $mod+v split v
@@ -58,6 +58,8 @@ bindsym $mod+a focus parent
 
 # focus the child container
 bindsym $mod+z focus child
+
+bindsym $mod+i exec swaylock -i $HOME/Pictures/screensaver.png
 
 # switch to workspace
 bindsym $mod+1 workspace 1
@@ -114,8 +116,10 @@ mode "resize" {
 bindsym $mod+o mode "launcher"
 mode "launcher" {
     bindsym f exec firefox
-    bindsym l exec librewolf
-    bindsym i exec inkscape
+    bindsym z exec zen
+    bindsym c exec chromium
+    # bindsym z exec librewolf
+    # bindsym i exec inkscape
     bindsym b exec alacritty --class alac_btop -e btop
 
     # back to normal: Enter or Escape
@@ -127,11 +131,8 @@ mode "launcher" {
 assign [app_id="firefox"] 1
 assign [class="^firefox$"] 1
 
-assign [app_id="librewolf"] 1
-assign [class="^librewolf$"] 1
-
-for_window [app_id="librewolf" title=".*LibreWolf Private Browsing.*"] move container to workspace 2
-for_window [class="^librewolf$" title=".*LibreWolf Private Browsing.*"] move container to workspace 2
+assign [app_id="^chromium$"] 2
+assign [class="^chromium$"] 2
 
 for_window [app_id="firefox" title=".*Firefox Private Browsing.*"] move container to workspace 2
 for_window [class="^firefox$" title=".*Firefox Private Browsing.*"] move container to workspace 2
@@ -181,4 +182,5 @@ bar {
 exec dunst
 # applications to launch at startup
 exec firefox
+exec chromium
 exec alacritty --class alac_btop -e btop
