@@ -10,8 +10,6 @@ export XDG_STATE_HOME="$HOME/.local/state"
 export CARGO_HOME="$XDG_DATA_HOME/cargo"
 export CUDA_CACHE_PATH="$XDG_CACHE_HOME/nv"
 export GNUPGHOME="$XDG_DATA_HOME/gnupg"
-# export GOPATH="$HOME/Workspace"
-export GOROOT="$XDG_DATA_HOME/go"
 export GIT_CONFIG="$XDG_CONFIG_HOME/git/config"
 export LESSHISTFILE="${XDG_STATE_HOME}/lesshst"
 export NVM_DIR="$XDG_DATA_HOME/nvm"
@@ -42,3 +40,9 @@ export FZF_DEFAULT_OPTS="--style=full --layout=reverse \
 export FZF_CTRL_T_OPTS="--preview 'bat --style=numbers --color=always {}'"
 # add preview for ALT-C
 export FZF_ALT_C_OPTS="--walker-skip .git,node_modules,target --preview 'tree -C {}'"
+
+# accessibility variables for orca
+export GTK_MODULES=gail:atk-bridge
+export QT_ACCESSIBILITY=1
+export QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
+export ACCESSIBILITY_ENABLED=1
