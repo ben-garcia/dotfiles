@@ -27,6 +27,25 @@ return {
     on_dir(project_root or vim.fn.getcwd())
   end,
   handlers = {
+    -- Filter out node_modules for Neovim <= 0.10 or direct handler calls
+    ['textDocument/definition'] = function(err, result, ctx, config)
+      if err or not result then
+        return vim.lsp.handlers['textDocument/definition'](err, result, ctx, config)
+      end
+
+      local list = vim.islist(result) and result or { result }
+      local filtered = vim.tbl_filter(function(loc)
+        local uri = loc.uri or loc.targetUri or ''
+        return not uri:match('node_modules')
+      end, list)
+
+      if #filtered > 0 then
+        result = #filtered == 1 and filtered[1] or filtered
+      end
+
+      return vim.lsp.handlers['textDocument/definition'](err, result, ctx, config)
+    end,
+
     -- handle rename request for certain code actions like extracting functions / types
     ['_typescript.rename'] = function(_, result, ctx)
       local client = assert(vim.lsp.get_client_by_id(ctx.client_id))
@@ -69,6 +88,28 @@ return {
     end,
   },
   on_attach = function(client, bufnr)
+    -- Filter out node_modules on go-to-definition (supports Neovim 0.11+ multi-client merging)
+    vim.keymap.set('n', 'gd', function()
+      vim.lsp.buf.definition({
+        on_list = function(options)
+          local filtered = vim.tbl_filter(function(item)
+            return item.filename and not item.filename:match('node_modules')
+          end, options.items)
+
+          local items = #filtered > 0 and filtered or options.items
+
+          if #items == 1 then
+            local target = items[1]
+            vim.cmd('edit ' .. vim.fn.fnameescape(target.filename))
+            vim.api.nvim_win_set_cursor(0, { target.lnum, math.max(0, target.col - 1) })
+          else
+            vim.fn.setqflist({}, ' ', { title = options.title, items = items })
+            vim.cmd('copen')
+          end
+        end,
+      })
+    end, { buffer = bufnr, desc = 'Go to definition (skip node_modules)' })
+
     -- ts_ls provides `source.*` code actions that apply to the whole file. These only appear in
     -- `vim.lsp.buf.code_action()` if specified in `context.only`.
     vim.api.nvim_buf_create_user_command(bufnr, 'LspTypescriptSourceAction', function()
